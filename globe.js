@@ -56,8 +56,8 @@ var EN_J={
   jFoot:"Sun position computed to within a fraction of a degree. The boundary between day and night is drawn with a twilight band; atmospheric refraction is not taken into account. Times are in Universal Time (UTC)."
 };
 var EN_F={
-  fH1:"Why does the time differ from one country to another?",
-  fLede:"Because the Sun is not at its highest everywhere at the same moment. To keep noon close to the middle of the day, the Earth is divided into <b>time zones</b>: within each one, every clock shows the same time.",
+  fH1:"Time zones",
+  fLede:"The time differs from one country to another because the Sun is not at its highest everywhere at the same moment. To keep noon close to the middle of the day, the Earth is divided into <b>time zones</b>: within each one, every clock shows the same time.",
   fHourL:"Time", fqAL:"First city", fqBL:"Second city",
   f1h:"Noon moves from east to west",
   f1p:"The small sun marks the place where the Sun is at its highest: it is noon there. Because the Earth turns 360° in 24 hours, that point moves 15° westward every hour. If every town set its clock by its own noon, two neighbouring towns would never show the same time.",
