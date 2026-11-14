@@ -203,8 +203,8 @@ footer{font-size:.8rem;color:var(--ink-2)}
 
 /* ---------- leçon « Jour et nuit » : le globe à gauche, les étapes à droite ---------- */
 .jgrid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:28px;align-items:start}
-#jStage{position:sticky;top:max(12px,env(safe-area-inset-top,0px));min-width:0}
-#jStage .gstage{height:clamp(400px,calc(100vh - 120px),700px)}
+#jStage,#fStage{position:sticky;top:max(12px,env(safe-area-inset-top,0px));min-width:0}
+#jStage .gstage,#fStage .gstage{height:clamp(400px,calc(100vh - 120px),700px)}
 .jside{display:flex;flex-direction:column;gap:18px;min-width:0}
 .jclock{display:flex;flex-direction:column;gap:8px;padding-bottom:18px;border-bottom:1px solid var(--line)}
 .jclock .now{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -217,8 +217,10 @@ footer{font-size:.8rem;color:var(--ink-2)}
 .jsteps .combo input{font-size:.95rem}
 .jclock .row .val{color:var(--ink-2);font-variant-numeric:tabular-nums;min-width:8.5em;text-align:right}
 .jclock .row button{padding:3px 10px;font-size:.8rem}
-#view-jour p,#view-jour .jmyths ul{max-width:none}
-#jLive{font-size:1.02rem;min-height:3em}
+#view-jour p,#view-jour .jmyths ul,#view-fuseaux p,#view-fuseaux .jmyths ul{max-width:none}
+#jLive,#fLive{font-size:1.02rem;min-height:3em}
+#fLive i{display:inline-block;width:.8em;height:.8em;border-radius:2px;margin-right:.35em;vertical-align:baseline}
+.fpair{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 12px}
 .jshow{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.9rem;min-width:0}
 .jshow legend{padding:0;margin-bottom:6px;font-weight:600}
 .jshow label.chk{display:flex;gap:7px;align-items:center;cursor:pointer}
@@ -245,8 +247,8 @@ a.inline{color:inherit;text-underline-offset:3px}
 }
 @media (max-width:900px){
   .jgrid{grid-template-columns:1fr}
-  #jStage{position:static}
-  #jStage .gstage{height:clamp(360px,58vh,560px)}
+  #jStage,#fStage{position:static}
+  #jStage .gstage,#fStage .gstage{height:clamp(360px,58vh,560px)}
 }
 @media (max-width:760px){
   .gstage{height:clamp(420px,calc(100vh - 190px),720px)}
@@ -268,6 +270,7 @@ a.inline{color:inherit;text-underline-offset:3px}
     <div class="tabs">
       <a href="#globe" data-view="globe" aria-current="page" data-i18n="navGlobe">Globe 3D</a>
       <a href="#jour" data-view="jour" data-i18n="navDay">Jour et nuit</a>
+      <a href="#fuseaux" data-view="fuseaux" data-i18n="navTz">Fuseaux horaires</a>
       <a href="#saisons" data-view="saisons" data-i18n="navSeasons">Saisons</a>
     </div>
     <div class="langs" role="group" aria-label="Langue / Language">
@@ -311,6 +314,7 @@ a.inline{color:inherit;text-underline-offset:3px}
         <label class="chk"><input type="checkbox" id="gEquator" data-opt="equator"> <span data-i18n="gLEquator">Équateur</span></label>
         <label class="chk"><input type="checkbox" id="gCircles" data-opt="circles"> <span data-i18n="gLCircles">Tropiques et cercles polaires</span></label>
         <label class="chk"><input type="checkbox" id="gGrid" data-opt="grid"> <span data-i18n="gLGrid">Méridiens et parallèles</span></label>
+        <label class="chk"><input type="checkbox" id="gTz" data-opt="tz"> <span data-i18n="navTz">Fuseaux horaires</span></label>
         <div class="row">
           <label class="head" for="gRelief"><span data-i18n="gLRelief">Relief exagéré</span> <span class="val num" id="gReliefOut">× 10</span></label>
           <input type="range" id="gRelief" min="1" max="30" step="1" value="10">
@@ -472,6 +476,92 @@ a.inline{color:inherit;text-underline-offset:3px}
     <footer data-i18n="jFoot">Position du Soleil calculée à une fraction de degré près. La limite entre jour et nuit est dessinée avec une bande de crépuscule&nbsp;; la réfraction de l'atmosphère n'est pas prise en compte. Heures en temps universel (UTC).</footer>
   </main>
 
+  <main class="view" id="view-fuseaux" hidden>
+    <header>
+      <h1 data-i18n="fH1">Pourquoi l'heure <span class="nw">change-t-elle</span> d'un pays à l'autre&nbsp;?</h1>
+      <p class="lede" data-i18n="fLede">Parce que le Soleil n'est pas au plus haut partout au même moment. Pour que midi reste proche du milieu du jour, la Terre est découpée en <b>fuseaux horaires</b>&nbsp;: dans chacun, toutes les horloges indiquent la même heure.</p>
+    </header>
+
+    <div class="jgrid">
+      <div id="fStage"></div>
+      <div class="jside">
+        <div class="jclock">
+          <div class="now">
+            <button class="primary" id="fPlay" type="button">▶ Lancer</button>
+            <output id="fTime"></output>
+          </div>
+          <div class="row">
+            <label for="fHour" data-i18n="fHourL">Heure</label>
+            <input type="range" id="fHour" min="0" max="24" step="0.25" value="12">
+            <button type="button" id="fNow" data-i18n="gNow">Maintenant</button>
+          </div>
+          <p id="fLive" aria-live="off"></p>
+        </div>
+        <ol class="jsteps" id="fSteps">
+          <li data-step="0">
+            <h3 data-i18n="f1h">Midi se déplace d'est en ouest</h3>
+            <p data-i18n="f1p">Le petit soleil marque l'endroit où le Soleil est au plus haut&nbsp;: il y est midi. Comme la Terre tourne de 360° en 24 heures, ce point avance de 15° vers l'ouest chaque heure. Si chaque ville réglait son horloge sur son propre midi, deux villes voisines n'auraient jamais la même heure.</p>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+          <li data-step="1">
+            <h3 data-i18n="f2h">Vingt-quatre fuseaux de 15°</h3>
+            <p data-i18n="f2p">La solution, adoptée au XIX<sup>e</sup> siècle avec les chemins de fer et le télégraphe&nbsp;: découper la Terre en 24 tranches de 15° de longitude. Dans une tranche, tout le monde adopte la même heure. D'une tranche à la suivante vers l'est, on avance d'une heure. La tranche de départ est celle du méridien de Greenwich&nbsp;: son heure s'appelle UTC.</p>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+          <li data-step="2">
+            <h3 data-i18n="f3h">Les vrais fuseaux suivent les frontières</h3>
+            <p data-i18n="f3p">En pratique, chaque pays choisit son heure. Les limites suivent donc les frontières plutôt que les méridiens, et quelques pays prennent un décalage d'une demi-heure ou d'un quart d'heure. Survolez le globe pour lire l'heure de chaque endroit.</p>
+            <div class="chips" id="fCases"></div>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+          <li data-step="3">
+            <h3 data-i18n="f4h">Quelle heure est-il ailleurs&nbsp;?</h3>
+            <p data-i18n="f4p">Choisissez deux villes. L'écart entre leurs heures est l'écart entre leurs décalages par rapport à UTC. Ce sont les heures légales normales&nbsp;: l'heure d'été, qui ajoute une heure une partie de l'année dans certains pays, n'est pas comptée.</p>
+            <div class="fpair">
+              <div class="place">
+                <label for="fqA" data-i18n="fqAL">Première ville</label>
+                <div class="combo">
+                  <input type="text" id="fqA" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="fqAList" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+                  <div class="pop" id="fqAPop" hidden>
+                    <div class="pophead" id="fqAHead" role="status" hidden></div>
+                    <ul id="fqAList" role="listbox" aria-label="Villes" data-i18n-attr="aria-label:cities"></ul>
+                  </div>
+                </div>
+              </div>
+              <div class="place">
+                <label for="fqB" data-i18n="fqBL">Deuxième ville</label>
+                <div class="combo">
+                  <input type="text" id="fqB" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="fqBList" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+                  <div class="pop" id="fqBPop" hidden>
+                    <div class="pophead" id="fqBHead" role="status" hidden></div>
+                    <ul id="fqBList" role="listbox" aria-label="Villes" data-i18n-attr="aria-label:cities"></ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+          <li data-step="4">
+            <h3 data-i18n="f5h">La ligne de changement de date</h3>
+            <p data-i18n="f5p">En faisant le tour de la Terre vers l'est, on avance d'une heure à chaque fuseau&nbsp;: après 24 fuseaux, on aurait un jour d'avance. Il faut donc un endroit où la date recule d'un jour. C'est la ligne de changement de date, tracée dans le Pacifique près du méridien 180°. La franchir vers l'ouest fait sauter un jour&nbsp;; vers l'est, on revit la même date. L'autre limite entre deux dates est le méridien où il est minuit&nbsp;: lui fait le tour de la Terre en 24 heures.</p>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <section class="jmyths">
+      <h2 data-i18n="fMh">À retenir</h2>
+      <ul>
+        <li data-i18n="fM1"><b>15° de longitude valent une heure.</b> La Terre tourne de 360° en 24 heures.</li>
+        <li data-i18n="fM2"><b>UTC est l'heure de référence.</b> Chaque fuseau s'écrit UTC+n ou UTC−n, selon qu'il est en avance ou en retard sur elle.</li>
+        <li data-i18n="fM3"><b>Vers l'est on avance l'horloge, vers l'ouest on la recule.</b> En franchissant la ligne de changement de date, c'est le jour qui change.</li>
+      </ul>
+    </section>
+
+    <footer data-i18n="fFoot">Limites des fuseaux&nbsp;: timezone-boundary-builder, d'après les contributeurs d'OpenStreetMap (licence ODbL), version 2026. Heures légales normales, sans heure d'été. Pour la Chine, c'est l'heure officielle unique (UTC+8) qui est retenue.</footer>
+  </main>
+
   <main class="view" id="view-saisons" hidden>
   <header>
     <h1 data-i18n="h1">Pourquoi y <span class="nw">a-t-il</span> des saisons&nbsp;?</h1>
@@ -602,15 +692,15 @@ a.inline{color:inherit;text-underline-offset:3px}
    Le français des textes fixes est dans le HTML ; chaque vue ajoute son anglais à Site.EN sous la même clé (data-i18n). */
 var Site=(function(){
   "use strict";
-  var VIEWS=['globe','jour','saisons'], LS='saisons-lang';
-  var TITLES={globe:['Globe terrestre','Earth Globe'], jour:['Le jour et la nuit','Day and Night'], saisons:['Saisons de la Terre',"Earth's Seasons"]};
-  var S={lang:'fr', view:'globe', EN:{brand:"Earth", navGlobe:"3D Globe", navDay:"Day and night", navSeasons:"Seasons", navAria:"Site sections"}};
+  var VIEWS=['globe','jour','fuseaux','saisons'], LS='saisons-lang';
+  var TITLES={globe:['Globe terrestre','Earth Globe'], jour:['Le jour et la nuit','Day and Night'], fuseaux:['Les fuseaux horaires','Time Zones'], saisons:['Saisons de la Terre',"Earth's Seasons"]};
+  var S={lang:'fr', view:'globe', EN:{brand:"Earth", navGlobe:"3D Globe", navDay:"Day and night", navTz:"Time zones", navSeasons:"Seasons", navAria:"Site sections"}};
   var langCbs=[], viewCbs=[], statics=[], sattrs=[];
   function $(id){return document.getElementById(id)}
   function fromHash(){
     var parts=(location.hash||'').slice(1).toLowerCase().split('-'), r={};
     parts.forEach(function(p){
-      if(p==='fr'||p==='en') r.lang=p; else if(VIEWS.indexOf(p)>=0) r.view=p; else if(p==='seasons') r.view='saisons'; else if(p==='day') r.view='jour';
+      if(p==='fr'||p==='en') r.lang=p; else if(VIEWS.indexOf(p)>=0) r.view=p; else if(p==='seasons') r.view='saisons'; else if(p==='day') r.view='jour'; else if(p==='timezones') r.view='fuseaux';
     });
     if(r.lang&&!r.view) r.view='saisons';
     return r;

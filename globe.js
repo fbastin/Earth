@@ -55,8 +55,29 @@ var EN_J={
   jM3:"<b>Day and night are not the seasons.</b> One turn of the Earth on itself takes 24 hours and gives day and night. One trip around the Sun takes a year and, with the tilted axis, gives the seasons.",
   jFoot:"Sun position computed to within a fraction of a degree. The boundary between day and night is drawn with a twilight band; atmospheric refraction is not taken into account. Times are in Universal Time (UTC)."
 };
+var EN_F={
+  fH1:"Why does the time differ from one country to another?",
+  fLede:"Because the Sun is not at its highest everywhere at the same moment. To keep noon close to the middle of the day, the Earth is divided into <b>time zones</b>: within each one, every clock shows the same time.",
+  fHourL:"Time", fqAL:"First city", fqBL:"Second city",
+  f1h:"Noon moves from east to west",
+  f1p:"The small sun marks the place where the Sun is at its highest: it is noon there. Because the Earth turns 360° in 24 hours, that point moves 15° westward every hour. If every town set its clock by its own noon, two neighbouring towns would never show the same time.",
+  f2h:"Twenty-four zones of 15°",
+  f2p:"The solution, adopted in the 19th century with railways and the telegraph: divide the Earth into 24 slices of 15° of longitude. Within a slice, everyone uses the same time. From one slice to the next going east, the clock moves forward one hour. The starting slice is that of the Greenwich meridian: its time is called UTC.",
+  f3h:"Real zones follow borders",
+  f3p:"In practice each country chooses its time. The limits therefore follow borders rather than meridians, and a few countries use an offset of half an hour or a quarter of an hour. Hover over the globe to read the time at each place.",
+  f4h:"What time is it elsewhere?",
+  f4p:"Pick two cities. The gap between their times is the gap between their offsets from UTC. These are normal legal times: daylight saving time, which adds an hour for part of the year in some countries, is not counted.",
+  f5h:"The International Date Line",
+  f5p:"Going around the Earth eastward, the clock moves forward one hour at each zone: after 24 zones you would be a day ahead. So there has to be a place where the date goes back one day. That is the International Date Line, drawn in the Pacific near the 180° meridian. Crossing it westward skips a day; crossing it eastward, you live the same date again. The other boundary between two dates is the meridian where it is midnight: that one goes around the Earth in 24 hours.",
+  fMh:"To remember",
+  fM1:"<b>15° of longitude equal one hour.</b> The Earth turns 360° in 24 hours.",
+  fM2:"<b>UTC is the reference time.</b> Each zone is written UTC+n or UTC−n, depending on whether it is ahead of it or behind it.",
+  fM3:"<b>Going east the clock moves forward, going west it moves back.</b> Crossing the International Date Line, it is the day that changes.",
+  fFoot:"Zone limits: timezone-boundary-builder, from OpenStreetMap contributors (ODbL license), 2026 release. Normal legal times, without daylight saving time. For China, the single official time (UTC+8) is used."
+};
 for(var ek in EN) Site.EN[ek]=EN[ek];
 for(ek in EN_J) Site.EN[ek]=EN_J[ek];
+for(ek in EN_F) Site.EN[ek]=EN_F[ek];
 var D={
   noGL:["La 3D (WebGL) est indisponible ici. Vérifiez que l'accélération graphique du navigateur est activée, ou ouvrez la page dans un autre navigateur. La vue Saisons fonctionne sans.","3D (WebGL) is unavailable here. Check that the browser's graphics acceleration is turned on, or open the page in another browser. The Seasons view works without it."],
   mLight:["Images à 4 km par pixel, villes de plus de 5 000 habitants, sans relief. Moins de 10 Mo à charger.","Imagery at 4 km per pixel, towns over 5,000 inhabitants, no relief. Under 10 MB to load."],
@@ -78,6 +99,16 @@ var D={
   sunTxt:["Soleil au zénith à {0}. Il est midi solaire sur ce méridien.","The Sun is overhead at {0}. It is solar noon on that meridian."],
   zenith:["Soleil au zénith","Sun overhead"],
   turn:["un tour en {0}","one turn in {0}"], secs:["{0} s","{0} s"], mins:["{0} min","{0} min"],
+  fLive1:["Il est midi au Soleil sur le méridien {0}. À 15° plus à l'est, midi est passé depuis une heure ; à 15° plus à l'ouest, il faut encore l'attendre une heure.","It is solar noon on the {0} meridian. 15° farther east, noon was an hour ago; 15° farther west, it is still an hour away."],
+  fLive2:["Fuseau de Greenwich : {0}. Chaque fuseau vers l'est ajoute une heure, chaque fuseau vers l'ouest en retire une. Les heures sont écrites le long de l'équateur.","Greenwich zone: {0}. Each zone to the east adds an hour, each zone to the west takes one away. The times are written along the equator."],
+  fLive3:["Chaque couleur est un fuseau. Survolez le globe : l'heure de l'endroit s'affiche en bas à gauche.","Each colour is a zone. Hover over the globe: the local time appears at the bottom left."],
+  fCity:["<b>{0}</b> : {1} ({2})","<b>{0}</b>: {1} ({2})"],
+  fAhead:["{0} a {1} d'avance sur {2}.","{0} is {1} ahead of {2}."], fSame:["Les deux villes ont la même heure.","Both cities have the same time."],
+  fNoTz:["Chargement des fuseaux…","Loading time zones…"],
+  fDate:["{0}on est le {1}","{0}it is {1}"],
+  fDateTxt:["Deux dates coexistent sur la Terre : {0}. La limite fixe est la ligne de changement de date ; la limite mobile est le méridien de minuit.","Two dates coexist on Earth: {0}. The fixed boundary is the International Date Line; the moving boundary is the midnight meridian."],
+  fDate3:["Trois dates coexistent en ce moment, à cause des fuseaux UTC+13 et UTC+14 : {0}.","Three dates coexist right now, because of the UTC+13 and UTC+14 zones: {0}."],
+  nextDay:["le lendemain","next day"], prevDay:["la veille","previous day"], hAnd:[" et "," and "],
   jPlay:["▶ Lancer","▶ Play"], jPause:["❚❚ Pause","❚❚ Pause"],
   jUp:["<b>{0}</b> : le Soleil est à {1}° au-dessus de l'horizon. Il fait jour.","<b>{0}</b>: the Sun is {1}° above the horizon. It is daytime."],
   jTw:["<b>{0}</b> : le Soleil vient de passer sous l'horizon ({1}°). C'est le crépuscule ou l'aube.","<b>{0}</b>: the Sun is just below the horizon ({1}°). It is dusk or dawn."],
@@ -133,6 +164,15 @@ var TOURS=[
   [-84,0,1.25,0,0,"Antarctique","Antarctica","<b>Antarctique.</b> Une calotte de glace épaisse de 2 km en moyenne recouvre le continent. Elle contient la majeure partie de l'eau douce de la planète.","<b>Antarctica.</b> An ice sheet 2 km thick on average covers the continent. It holds most of the planet's fresh water."]
 ];
 
+/* Cas remarquables de l'étape 3 : [nom fr, nom en, latitude, longitude, distance, phrase fr, phrase en] */
+var TZX=[
+  ["Chine","China",35,103,1.5,"La Chine s'étend sur cinq fuseaux théoriques mais n'utilise qu'une seule heure, UTC+8, celle de Pékin.","China spans five theoretical zones but uses a single time, UTC+8, that of Beijing."],
+  ["Inde","India",22,79,1.2,"L'Inde a choisi une heure unique décalée d'une demi-heure : UTC+5:30.","India chose a single time offset by half an hour: UTC+5:30."],
+  ["Népal","Nepal",28,84,0.5,"Le Népal se distingue de son voisin par un quart d'heure : UTC+5:45.","Nepal sets itself apart from its neighbour by a quarter of an hour: UTC+5:45."],
+  ["France et Espagne","France and Spain",44,0,0.8,"Le méridien de Greenwich traverse la France et l'Espagne, mais toutes deux sont à UTC+1, comme l'Allemagne.","The Greenwich meridian crosses France and Spain, yet both are on UTC+1, like Germany."],
+  ["Russie","Russia",62,95,2.3,"La Russie compte onze fuseaux, de UTC+2 à UTC+12.","Russia has eleven zones, from UTC+2 to UTC+12."],
+  ["Australie","Australia",-25,134,1.3,"L'Australie continentale a trois heures : UTC+8 à l'ouest, UTC+9:30 au centre, UTC+10 à l'est.","Mainland Australia has three times: UTC+8 in the west, UTC+9:30 in the centre, UTC+10 in the east."]
+];
 var JCITIES=[["Montréal","Montreal",45.5,-73.57],["Paris","Paris",48.86,2.35],["Dakar","Dakar",14.7,-17.45],["Tokyo","Tokyo",35.68,139.69],["Sydney","Sydney",-33.87,151.21],["Quito","Quito",-0.18,-78.47]];
 
 /* ---------- niveaux de détail ----------
@@ -147,26 +187,30 @@ var mode='full', M=MODES.full;
    Les réglages du globe et ceux de la leçon sont gardés dans le navigateur : on les retrouve en changeant d'onglet
    comme en rouvrant la page. Sans stockage disponible, tout fonctionne avec les valeurs par défaut. */
 var PREF_KEY='terre-choix', SHOWN=['axis','equator','circles','grid','borders','names'];
-var prefs={globe:{borders:true,names:true,grid:false,equator:false,circles:false,axis:false,sun:false,ex:10,mode:''},
+var prefs={globe:{borders:true,names:true,grid:false,equator:false,circles:false,axis:false,tz:false,sun:false,ex:10,mode:''},
+           tz:{step:0,a:{lat:45.5,lon:-73.57,n:['Montréal','Montreal']},b:{lat:48.86,lon:2.35,n:['Paris','Paris']}},
            lesson:{step:0,day:null,speed:3,ecl:true,city:0,place:null,show:{axis:true,equator:true,circles:false,grid:false,borders:true,names:true}}};
 (function(){
   try{
     var d=JSON.parse(localStorage.getItem(PREF_KEY)||'null'); if(!d) return;
-    ['globe','lesson'].forEach(function(g){ if(d[g]) for(var k in prefs[g]) if(d[g][k]!==undefined&&typeof d[g][k]===typeof prefs[g][k]||(prefs[g][k]===null&&d[g][k]!==undefined)) prefs[g][k]=d[g][k]; });
+    ['globe','lesson','tz'].forEach(function(g){ if(d[g]) for(var k in prefs[g]) if(d[g][k]!==undefined&&typeof d[g][k]===typeof prefs[g][k]||(prefs[g][k]===null&&d[g][k]!==undefined)) prefs[g][k]=d[g][k]; });
     var L=prefs.lesson; L.step=clamp(L.step|0,0,4); L.speed=clamp(L.speed|0,0,6);
     if(L.day!==null) L.day=clamp(L.day|0,0,364);
     if(L.place&&!(typeof L.place.lat==='number'&&typeof L.place.lon==='number'&&L.place.n&&L.place.n.length===2)){L.place=null;}
     if(!(L.city>=0&&L.city<6)) L.city=L.place?-1:0;
     prefs.globe.ex=clamp(prefs.globe.ex|0,1,30);
+    prefs.tz.step=clamp(prefs.tz.step|0,0,4);
+    ['a','b'].forEach(function(k){var c=prefs.tz[k]; if(!(c&&typeof c.lat==='number'&&typeof c.lon==='number'&&c.n&&c.n.length===2)) prefs.tz[k]=k==='a'?{lat:45.5,lon:-73.57,n:['Montréal','Montreal']}:{lat:48.86,lon:2.35,n:['Paris','Paris']};});
     if(!MODES[prefs.globe.mode]) prefs.globe.mode='';
   }catch(e){}
 })();
 function savePrefs(){
+  if(tz.on){ prefs.tz.step=tz.step; prefs.tz.a=tz.a; prefs.tz.b=tz.b; try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){} return; }
   var o=lesson.on?prefs.lesson.show:prefs.globe;
   SHOWN.forEach(function(k){o[k]=lesson.on&&lesson.auto[k]?false:opt[k];});      /* ce qu'une étape a allumé n'est pas un choix */
   if(lesson.on){
     var L=prefs.lesson; L.step=lesson.step; L.day=lesson.today?null:sunSt.day; L.speed=Math.max(0,SPEEDS.indexOf(speed)); L.ecl=lesson.ecl; L.city=lesson.city; L.place=lesson.place;
-  } else { prefs.globe.sun=opt.sun; if(!soft) prefs.globe.ex=opt.ex; }
+  } else { prefs.globe.sun=opt.sun; prefs.globe.tz=opt.tz; if(!soft) prefs.globe.ex=opt.ex; }
   prefs.globe.mode=modeChosen?mode:'';
   try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){}
 }
@@ -174,12 +218,13 @@ function savePrefs(){
 /* ---------- état ---------- */
 var lesson={on:false,step:0,follow:null,elev:0.14,ecl:true,city:0,place:null,day:null,today:true,saved:null,auto:{}};
 var cam={lat:22,lon:8,range:3.4,heading:0,tilt:0};
-var opt={borders:true,names:true,grid:false,equator:false,circles:false,axis:false,ex:10,sun:false};
+var opt={borders:true,names:true,grid:false,equator:false,circles:false,axis:false,tz:false,ex:10,sun:false};
 var SPEEDS=[0.1,0.25,0.5,1,2,4,8], speed=1;      /* heures simulées par seconde */
 var soft=false, modeChosen=false;
 var sunSt={day:171,hour:12,playing:false};
 var dirty=true, inited=false, gl=null, frameNo=0, lastT=0;
 var eye=[0,0,0], fwd=[0,0,0], rgt=[0,0,0], upv=[0,0,0], eyeD=1, W=1, H=1, DPR=1, aspect=1, VP=new Float32Array(16), SVP=new Float32Array(16);
+var tz={on:false,step:0,a:null,b:null,note:-1,saved:null}, pins=[];
 var hover=null, pin=null, measure={on:false,pts:[]}, fly=null, zoomTo=null, anchor=null, tourMsg=null;
 var msgEl=$('gMsg'), foot=document.querySelector('.gfoot');
 
@@ -228,12 +273,14 @@ var FP='#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecis
 var VS_TILE='attribute vec3 aDir; attribute float aElev; attribute vec2 aUV;\n'+
   'uniform mat4 uVP; uniform float uEx; varying vec2 vUV; varying vec3 vN;\n'+
   'void main(){ vUV=aUV; vN=aDir; gl_Position=uVP*vec4(aDir*(1.0+max(aElev,0.0)*uEx),1.0); }';
-var FS_TILE=FP+'varying vec2 vUV; varying vec3 vN; uniform sampler2D uTex; uniform sampler2D uNight; uniform vec3 uSun; uniform float uSunOn; uniform float uNightOn;\n'+
-  'void main(){ vec3 c=texture2D(uTex,vUV).rgb;\n'+
-  ' if(uSunOn>0.5){ vec3 n=normalize(vN); float d=dot(n,uSun); float day=smoothstep(-0.10,0.10,d);\n'+
+var FS_TILE=FP+'varying vec2 vUV; varying vec3 vN; uniform sampler2D uTex; uniform sampler2D uNight; uniform sampler2D uTz; uniform sampler2D uPal; uniform vec3 uSun; uniform float uSunOn; uniform float uNightOn; uniform float uTzOn;\n'+
+  'void main(){ vec3 c=texture2D(uTex,vUV).rgb; vec3 n=normalize(vN);\n'+
+  ' vec2 q=vec2(atan(-n.z,n.x)*0.15915494+0.5, 0.5-asin(clamp(n.y,-1.0,1.0))*0.31830989);\n'+
+  ' if(uSunOn>0.5){ float d=dot(n,uSun); float day=smoothstep(-0.10,0.10,d);\n'+
   '  vec3 lit=c*(0.74+0.26*smoothstep(0.0,0.7,d)); vec3 dark=c*vec3(0.05,0.07,0.13);\n'+
-  '  if(uNightOn>0.5){ vec2 q=vec2(atan(-n.z,n.x)*0.15915494+0.5, 0.5-asin(clamp(n.y,-1.0,1.0))*0.31830989); dark=max(dark,texture2D(uNight,q).rgb*1.35); }\n'+
+  '  if(uNightOn>0.5){ dark=max(dark,texture2D(uNight,q).rgb*1.35); }\n'+
   '  c=mix(dark,lit,day); }\n'+
+  ' if(uTzOn>0.5){ float z=texture2D(uTz,q).r*255.0; vec4 p=texture2D(uPal,vec2((z+0.5)/256.0,0.5)); c=mix(c,p.rgb,p.a); }\n'+
   ' gl_FragColor=vec4(c,1.0); }';
 var VS_LINE='attribute vec3 aDir; attribute float aElev;\n'+
   'uniform mat4 uVP; uniform float uEx; uniform vec3 uEye; varying float vVis;\n'+
@@ -529,8 +576,8 @@ function step(dt){
     if(zoomTo===null) anchor=null;
     dirty=true;
   }
-  if(sunSt.playing&&opt.sun){
-    sunSt.hour+=dt*speed; if(sunSt.hour>=24){sunSt.hour-=24; if(!lesson.on) sunSt.day=(sunSt.day+1)%365;}
+  if(sunSt.playing&&(opt.sun||tz.on)){
+    sunSt.hour+=dt*speed; if(sunSt.hour>=24){sunSt.hour-=24; if(!lesson.on&&!tz.on) sunSt.day=(sunSt.day+1)%365;}
     syncSun(); dirty=true;
   }
   if(lesson.on&&lesson.follow!==null){        /* caméra fixe par rapport au Soleil : c'est la Terre qui tourne dessous */
@@ -562,6 +609,68 @@ function zoomBy(f,x,y){
   zoomTo=target; dirty=true;
 }
 
+/* ---------- fuseaux horaires ----------
+   data/tz.png : chaque pixel vaut 1 + (décalage UTC + 12 h) en quarts d'heure. Une petite palette de 256 couleurs
+   dit comment teinter chaque décalage ; la changer suffit pour colorer par fuseau, par date ou pour deux villes. */
+var TZW=0, TZH=0, tzPx=null, tzState=0, tzTexReal=null, tzTexIdeal=null, palTex=null, palKey='', pal=new Uint8Array(1024);
+var tzIdeal=new Uint8Array(2048);
+(function(){ for(var i=0;i<2048;i++){ var lon=(i+0.5)/2048*360-180, k=Math.round(lon/15); tzIdeal[i]=(k+12)*4+1; } })();    /* 24 tranches de 15° */
+function lumTex(data,w,h){
+  var tex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tex); gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.LUMINANCE,w,h,0,gl.LUMINANCE,gl.UNSIGNED_BYTE,data);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  return tex;
+}
+function loadTz(){
+  if(tzState||!inited||!(gl||soft)) return;
+  tzState=1;
+  if(gl){
+    tzTexIdeal=lumTex(tzIdeal,2048,1);
+    palTex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,palTex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,256,1,0,gl.RGBA,gl.UNSIGNED_BYTE,pal);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+    palKey='';
+  }
+  loadBitmap('data/tz.png').then(function(bmp){
+    var w=bmp.width, h=bmp.height, d=pixelsOf(bmp), a=new Uint8Array(w*h);
+    for(var i=0;i<w*h;i++) a[i]=d[i]&255;
+    TZW=w; TZH=h; tzPx=a; if(gl) tzTexReal=lumTex(a,w,h);
+    tzState=2; hud={}; dirty=true;
+  }).catch(function(){tzState=0;});
+}
+function tzAt(lat,lon){       /* décalage UTC en heures de l'heure légale, ou null si la carte n'est pas chargée */
+  if(!tzPx) return null;
+  var x=Math.min(TZW-1,Math.max(0,((lon+180)/360*TZW)|0)), y=Math.min(TZH-1,Math.max(0,((90-lat)/180*TZH)|0)), v=tzPx[y*TZW+x];
+  return v?(v-1)/4-12:null;
+}
+function zoneShow(){          /* quoi teinter : rien, les tranches théoriques ou les vrais fuseaux, et selon quelle palette */
+  if(tz.on) return tz.step===0?null:tz.step===1?{ideal:true,pal:'zones'}:{ideal:false,pal:tz.step===3?'pair':tz.step===4?'date':'zones'};
+  return opt.tz?{ideal:false,pal:'zones'}:null;
+}
+function tzReady(zs){ if(!tzState) loadTz(); return zs.ideal?tzState>0:tzState===2; }
+var ZCOL=[[70,150,255],[255,190,70],[90,200,130],[235,110,110]], DCOL=[[70,150,255],[255,176,64],[240,96,170]];
+function palette(zs){         /* remplit pal ; renvoie une clé qui change quand la palette change */
+  var key=zs.pal, oa=null, ob=null, i, off, c, a;
+  if(zs.pal==='pair'){ oa=tzAt(tz.a.lat,tz.a.lon); ob=tzAt(tz.b.lat,tz.b.lon); key+=oa+'/'+ob; }
+  if(zs.pal==='date') key+=Math.round(sunSt.hour*4);
+  if(key===pal.key) return key;
+  pal.key=key;
+  for(i=1;i<=105;i++){
+    off=(i-1)/4-12;
+    if(zs.pal==='zones'){ c=off%1?[205,125,235]:ZCOL[((off%4)+4)%4]; a=108; }
+    else if(zs.pal==='pair'){ if(off===oa){c=[255,200,60]; a=150;} else if(off===ob){c=[90,170,255]; a=150;} else {c=[14,18,36]; a=95;} }
+    else { c=DCOL[Math.floor((sunSt.hour+off)/24)+1]||DCOL[1]; a=118; }
+    pal[i*4]=c[0]; pal[i*4+1]=c[1]; pal[i*4+2]=c[2]; pal[i*4+3]=a;
+  }
+  return key;
+}
+function offStr(off){ var a=Math.abs(off), h=Math.floor(a+1e-9), m=Math.round((a-h)*60); return off===0?'UTC':'UTC'+(off<0?'−':'+')+h+(m?':'+pad(m):''); }
+function clockStr(h){ h=((h%24)+24)%24; var hh=Math.floor(h+1e-9), mm=Math.floor((h-hh)*60+1e-6); return li?pad(hh)+':'+pad(mm):hh+' h '+pad(mm); }
+function localAt(off){ var t0=sunSt.hour+off, sh=Math.floor(t0/24); return {h:t0-24*sh,shift:sh}; }
+function durStr(x){ var h=Math.floor(x+1e-9), m=Math.round((x-h)*60); return li?(h?h+' h':'')+(m?(h?' ':'')+m+' min':''):(h?h+' h':'')+(m?(h?' '+pad(m):m+' min'):''); }
+
 /* ---------- Soleil ---------- */
 function eclBasis(){    /* dans le repère de la Terre : direction du Soleil S, nord de l'écliptique Ne, sens de l'orbite P */
   var sp=sunPos(), S=ll2v(sp.lat,sp.lon), e=23.44*DEG, sd=clamp(S[1]/Math.sin(e),-1,1);
@@ -584,6 +693,7 @@ function syncSun(){
   $('gSunTxt').textContent=tf('sunTxt',coordStr(s.lat,s.lon,1));
   $('gSpin').textContent=t(sunSt.playing?'spinStop':'spin'); $('gSpin').setAttribute('aria-pressed',String(sunSt.playing));
   $('jPlay').textContent=t(sunSt.playing?'jPause':'jPlay'); $('jTime').textContent=ds+', '+hs;
+  $('fPlay').textContent=t(sunSt.playing?'jPause':'jPlay'); $('fTime').textContent=hs+' · '+ds; $('fHour').value=sunSt.hour; $('fHour').setAttribute('aria-valuetext',hs);
   $('jDay').value=sunSt.day; $('jDay').setAttribute('aria-valuetext',ds);
   var sec=24/speed, so=tf('turn',sec>=60?tf('mins',nf(sec/60,0)):tf('secs',nf(sec,0)));
   $('jSpeedOut').textContent=so; $('jSpeed').setAttribute('aria-valuetext',so);
@@ -622,7 +732,15 @@ function render(){
   gl.uniformMatrix4fv(pTile.uVP,false,VP); gl.uniform1f(pTile.uEx,ex); gl.uniform3f(pTile.uSun,sv[0],sv[1],sv[2]);
   gl.uniform1f(pTile.uSunOn,opt.sun?1:0); gl.uniform1f(pTile.uNightOn,nightTex?1:0);
   gl.uniform1i(pTile.uTex,0); gl.uniform1i(pTile.uNight,1);
-  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,nightTex); gl.activeTexture(gl.TEXTURE0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,nightTex);
+  var zs=zoneShow(), zOn=zs&&tzReady(zs)?1:0;
+  gl.uniform1i(pTile.uTz,2); gl.uniform1i(pTile.uPal,3); gl.uniform1f(pTile.uTzOn,zOn);
+  if(zOn){
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D,zs.ideal?tzTexIdeal:tzTexReal);
+    gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D,palTex);
+    var key=palette(zs); if(key!==palKey){ palKey=key; gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,256,1,0,gl.RGBA,gl.UNSIGNED_BYTE,pal); }
+  }
+  gl.activeTexture(gl.TEXTURE0);
   var want=wantedLevel(), queue=[], target=ll2v(cam.lat,cam.lon);
   for(var L=0;L<=want;L++){
     var m=meta[L], drew=false, tx=L?texel(L-1):0, last=L===maxLevel();
@@ -719,6 +837,7 @@ function renderSoft(fine){
   softEvict();
 
   var levels=[]; for(L=want;L>=0;L--) if(softGrid[L]) levels.push({g:softGrid[L],cols:meta[L].cols,rows:meta[L].rows,w:meta[L].w,h:meta[L].h});
+  var zs=zoneShow(), zArr=null, zW=0, zH=1; if(zs&&tzReady(zs)){ palette(zs); if(zs.ideal){zArr=tzIdeal; zW=2048; zH=1;} else {zArr=tzPx; zW=TZW; zH=TZH;} }
   var nl=levels.length, sun=opt.sun, sp=sunPos(), sv=ll2v(sp.lat,sp.lon), sx=sv[0], sy=sv[1], sz=sv[2];
   var ex=eye[0], ey=eye[1], ez=eye[2], C=eyeD*eyeD-1, ta=TANV*aspect, INV2PI=1/TAU, INVPI=1/Math.PI, SPACE=0xff1b0c08;
   for(var y=0;y<h;y++){
@@ -749,6 +868,7 @@ function renderSoft(fine){
         if(nightPx&&day<1){ var np=nightPx[(v*NH|0)*NW+(u*NW|0)]; nr=Math.max(nr,(np&255)*1.35); ng=Math.max(ng,(np>>8&255)*1.35); nb=Math.max(nb,(np>>16&255)*1.35); }
         R=nr+(R*lt-nr)*day; G=ng+(G*lt-ng)*day; Bl=nb+(Bl*lt-nb)*day;
       }
+      if(zArr){ var zi=zArr[(v*zH|0)*zW+(u*zW|0)]*4, za=pal[zi+3]/255; if(za>0){ R+=(pal[zi]-R)*za; G+=(pal[zi+1]-G)*za; Bl+=(pal[zi+2]-Bl)*za; } }
       var e2=eyeD*eyeD-B*B/A;                         /* brume bleutée vers le bord du disque */
       if(e2>0.55){ a=e2*e2; a=a*a*e2*0.3; if(sun) a*=0.07+0.93*clamp((px*sx+py*sy+pz*sz+0.3)/0.55,0,1); R+=87*a; G+=153*a; Bl+=255*a; }
       s32[o]=0xff000000|(Bl>255?255:Bl)<<16|(G>255?255:G)<<8|(R>255?255:R);
@@ -866,6 +986,17 @@ function drawOverlay(){
       label(p,pin.n,'600 13px '+FONT,'#ffd24a','left',11,0);
     }
   }
+  pins.forEach(function(q){
+    var pp=project(q.v,hOf(q)); if(!pp) return;
+    ctx.save(); ctx.beginPath(); ctx.arc(pp[0],pp[1],6,0,TAU); ctx.fillStyle=q.color; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#151a2d'; ctx.stroke(); ctx.restore();
+    label(pp,q.n,'600 13px '+FONT,q.color,'left',11,0);
+  });
+  if(tz.on&&tz.step<=1){        /* l'heure de chaque tranche de 15°, écrite le long de l'équateur */
+    for(i=-11;i<=12;i++){
+      var hv=ll2v(0,i*15); if(limb(hv)<edge) continue;
+      p=project(hv,0); if(p) label(p,clockStr(localAt(i).h),'600 12px '+FONT,'#fff','center',0,0);
+    }
+  }
   if(opt.sun){
     var s=sunPos(); p=project(ll2v(s.lat,s.lon),0);
     if(p){
@@ -925,7 +1056,8 @@ function updateHud(){
   if(hover&&!P){ setText('gCoord','—'); setText('gElev',''); }
   else{
     setText('gCoord',coordStr(g.lat,g.lon));
-    if(!M.elev) setText('gElev','');
+    if(tz.on){}
+    else if(!M.elev) setText('gElev','');
     else if(elev){var e=elevAt(g.lat,g.lon); setText('gElev',e>=0?tf('elev',nf(Math.round(e/10)*10,0)):tf('depth',nf(Math.round(-e/10)*10,0)));}
   }
   var km=(eyeD-1)*RKM; setText('gAlt',tf('eye',nf(km>=1000?Math.round(km/10)*10:Math.round(km),0)));
@@ -936,6 +1068,11 @@ function updateHud(){
     var kmpp=cam.range*2*TANV/H*RKM, raw=kmpp*110, pw=Math.pow(10,Math.floor(Math.log10(raw))), nice=raw/pw>=5?5*pw:raw/pw>=2?2*pw:pw;
     if(sc.hidden) sc.hidden=false;
     $('gScaleBar').style.width=Math.round(nice/kmpp)+'px'; setText('gScaleTxt',nf(nice,0)+' km');
+  }
+  if(tz.on){
+    var fh=tzLive(); if(hud.fLive!==fh){hud.fLive=fh; $('fLive').innerHTML=fh;}
+    var zo=P||!hover?tzAt(g.lat,g.lon):null;
+    setText('gElev',zo===null?'':offStr(zo)+' · '+clockStr(localAt(zo).h));
   }
   if(lesson.on){
     var sp=sunPos(), html;
@@ -1183,6 +1320,119 @@ toursEl.addEventListener('click',function(ev){
   var r=stage.getBoundingClientRect(); if(r.top<0||r.bottom>window.innerHeight+80) stage.scrollIntoView({block:'nearest',behavior:reduce?'auto':'smooth'});
 });
 
+/* ---------- leçon « Fuseaux horaires » ---------- */
+function dayName(shift){ return dateStr(((sunSt.day+shift)%365+365)%365); }
+function tzLive(){
+  var i=tz.step, sp=sunPos();
+  if(i===0) return tf('fLive1',lonStr(sp.lon));
+  if(i===1) return tf('fLive2','<b>'+clockStr(sunSt.hour)+'</b>');
+  if(i===2) return tz.note>=0?esc(TZX[tz.note][5+li]):t('fLive3');
+  if(!tzPx) return t('fNoTz');
+  if(i===3){
+    var oa=tzAt(tz.a.lat,tz.a.lon), ob=tzAt(tz.b.lat,tz.b.lon), la=localAt(oa), lb=localAt(ob);
+    function one(c,o,l,col){ return '<i style="background:'+col+'"></i>'+tf('fCity','\u0001',clockStr(l.h)+(l.shift>0?', '+t('nextDay'):l.shift<0?', '+t('prevDay'):''),offStr(o)).replace('\u0001',esc(c.n[li])); }
+    var d=ob-oa, cmp=d===0?t('fSame'):d>0?tf('fAhead',esc(tz.b.n[li]),durStr(d),esc(tz.a.n[li])):tf('fAhead',esc(tz.a.n[li]),durStr(-d),esc(tz.b.n[li]));
+    return one(tz.a,oa,la,'#ffc83c')+'<br>'+one(tz.b,ob,lb,'#5aaaff')+'<br>'+cmp;
+  }
+  var parts=[];
+  [-1,0,1].forEach(function(sh){
+    var any=false; for(var o=-12;o<=14;o+=0.25){ if(Math.floor((sunSt.hour+o)/24)===sh){any=true; break;} }
+    if(any) parts.push('<i style="background:rgb('+DCOL[sh+1].join(',')+')"></i><b>'+dayName(sh)+'</b>');
+  });
+  return tf(parts.length>2?'fDate3':'fDateTxt',parts.join(parts.length>2?', ':t('hAnd')));
+}
+function tzPins(){
+  return [{v:ll2v(tz.a.lat,tz.a.lon),lat:tz.a.lat,lon:tz.a.lon,n:tz.a.n[li],color:'#ffc83c'},{v:ll2v(tz.b.lat,tz.b.lon),lat:tz.b.lat,lon:tz.b.lon,n:tz.b.n[li],color:'#5aaaff'}];
+}
+function renderF(){
+  $('fCases').innerHTML=TZX.map(function(c,i){return '<button type="button" data-case="'+i+'" aria-pressed="'+(tz.step===2&&tz.note===i)+'">'+c[li]+'</button>';}).join('');
+  document.querySelectorAll('#fSteps li').forEach(function(el){
+    var on=+el.getAttribute('data-step')===tz.step; el.classList.toggle('on',on);
+    if(on) el.setAttribute('aria-current','step'); else el.removeAttribute('aria-current');
+  });
+  if(tz.a){ if(document.activeElement!==$('fqA')) $('fqA').value=tz.a.n[li]; if(document.activeElement!==$('fqB')) $('fqB').value=tz.b.n[li]; }
+  if(tz.on&&tz.step===3) pins=tzPins();
+}
+function applyTz(i,keepView){
+  tz.step=i; stopMotion(); if(measure.on) setMeasure(false); tourMsg=null; showMsg(''); pin=null;
+  setOpt('sun',i<=1||i===4); ['grid','equator','circles','axis'].forEach(function(k){setOpt(k,false);}); setOpt('borders',true); setOpt('names',true);
+  pins=i===3?tzPins():[]; if(i!==2) tz.note=-1;
+  if(!keepView){
+    resize(); cam.heading=0; cam.tilt=0; cam.range=homeRange(); cam.lat=15;
+    if(i<=1) cam.lon=sunPos().lon;
+    else if(i===3){ var a=ll2v(tz.a.lat,tz.a.lon), b=ll2v(tz.b.lat,tz.b.lon), m=[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+      if(Math.hypot(m[0],m[1],m[2])>0.2){ var g=v2ll(norm(m)); cam.lat=clamp(g.lat,-50,50); cam.lon=g.lon; } else cam.lon=tz.a.lon; }
+    else if(i===4){ cam.lon=180; cam.lat=5; }
+  }
+  sunSt.playing=(i<=1||i===4)&&!reduce;
+  hud={}; syncSun(); renderF(); dirty=true; savePrefs();
+}
+$('fSteps').addEventListener('click',function(ev){
+  var li0=ev.target.closest('li[data-step]'), b=ev.target.closest('button'); if(!li0||!b) return;
+  if(b.hasAttribute('data-case')){
+    var c=TZX[+b.getAttribute('data-case')]; tz.note=+b.getAttribute('data-case');
+    applyTz(2,true); flyTo({lat:c[2],lon:c[3],range:c[4]});
+  } else applyTz(+li0.getAttribute('data-step'));
+  var r=stage.getBoundingClientRect(); if(r.bottom<120||r.top>window.innerHeight-120) stage.scrollIntoView({block:'nearest',behavior:reduce?'auto':'smooth'});
+});
+$('fPlay').addEventListener('click',function(){sunSt.playing=!sunSt.playing; syncSun(); dirty=true;});
+$('fHour').addEventListener('input',function(){sunSt.hour=Math.min(+this.value,23.999); sunSt.playing=false; hud={}; syncSun(); dirty=true;});
+$('fNow').addEventListener('click',function(){sunSt.playing=false; setNow(); hud={}; syncSun(); dirty=true;});
+/* Champ de ville avec propositions : entrée, liste, et la fonction appelée quand une ville est choisie. */
+function cityCombo(id,choose){
+  var inp=$(id), pop=$(id+'Pop'), list=$(id+'List'), head=$(id+'Head'), items=[], act=-1;
+  function close(){pop.hidden=true; inp.setAttribute('aria-expanded','false'); inp.removeAttribute('aria-activedescendant');}
+  function render(){
+    var txt=inp.value.trim();
+    items=txt?search(txt).filter(function(o){return o.coords||o.type===1;}):[]; act=items.length?0:-1;
+    list.innerHTML=items.map(function(o,i){
+      var sub='';
+      if(o.type===1&&places){ var ad=o.ai>=0&&places.admins[o.ai], an=ad?(li&&ad[1]?ad[1]:ad[0]):'', cn=o.ci>=0?places.countries[o.ci].n[li]:''; sub=an&&an!==cn?(cn?an+', '+cn:an):cn; }
+      return '<li role="option" id="'+id+'-'+i+'" data-i="'+i+'" aria-selected="'+(i===act)+'" class="'+(i===act?'act':'')+'"><span class="n">'+esc(o.n[li])+(sub?' <span class="c">'+esc(sub)+'</span>':'')+'</span></li>';
+    }).join('');
+    list.hidden=!items.length;
+    var none=txt&&!items.length&&places; head.textContent=none?t('none'):''; head.hidden=!none;
+    var open=!!txt&&(items.length>0||none); pop.hidden=!open; inp.setAttribute('aria-expanded',String(open));
+    if(act>=0) inp.setAttribute('aria-activedescendant',id+'-'+act); else inp.removeAttribute('aria-activedescendant');
+  }
+  function pick(o){ inp.value=o.n[li]; close(); if(coarse) inp.blur(); choose({lat:o.lat,lon:o.lon,n:o.n}); }
+  inp.addEventListener('input',render);
+  inp.addEventListener('focus',function(){setTimeout(function(){ if(document.activeElement===inp) inp.select(); },0);});
+  inp.addEventListener('keydown',function(ev){
+    var k=ev.key, n=items.length;
+    if((k==='ArrowDown'||k==='ArrowUp')&&n){
+      ev.preventDefault(); if(pop.hidden){render(); return;}
+      var old=list.querySelector('.act'); if(old){old.classList.remove('act'); old.setAttribute('aria-selected','false');}
+      act=k==='ArrowDown'?(act+1)%n:(act+n-1)%n;
+      var el=list.children[act]; el.classList.add('act'); el.setAttribute('aria-selected','true'); inp.setAttribute('aria-activedescendant',el.id);
+    }
+    else if(k==='Enter'){ ev.preventDefault(); if(pop.hidden) render(); if(act>=0&&items[act]) pick(items[act]); }
+    else if(k==='Escape'&&!pop.hidden){ ev.preventDefault(); close(); }
+  });
+  inp.addEventListener('blur',function(){setTimeout(function(){close(); renderF();},0);});
+  pop.addEventListener('mousedown',function(ev){ev.preventDefault();});
+  list.addEventListener('click',function(ev){var el=ev.target.closest('li'); if(el) pick(items[+el.getAttribute('data-i')]);});
+}
+cityCombo('fqA',function(c){tz.a=c; applyTz(3);});
+cityCombo('fqB',function(c){tz.b=c; applyTz(3);});
+function enterTz(){
+  savePrefs();
+  $('fStage').appendChild(stage);
+  tz.saved={cam:{lat:cam.lat,lon:cam.lon,range:cam.range,heading:cam.heading,tilt:cam.tilt},pin:pin,day:sunSt.day,hour:sunSt.hour};
+  tz.on=true; tz.step=prefs.tz.step; tz.a=prefs.tz.a; tz.b=prefs.tz.b; tz.note=-1;
+  $('gPanel').hidden=true; $('gLayers').setAttribute('aria-expanded','false');
+  setNow(); speed=1; loadTz();
+  applyTz(tz.step);
+}
+function leaveTz(){
+  var sv=tz.saved; savePrefs();
+  tz.on=false; pins=[]; sunSt.playing=false;
+  $('gSlot').appendChild(stage);
+  SHOWN.forEach(function(k){setOpt(k,prefs.globe[k]);}); setOpt('sun',prefs.globe.sun); setOpt('tz',prefs.globe.tz);
+  if(sv){ cam.lat=sv.cam.lat; cam.lon=sv.cam.lon; cam.range=sv.cam.range; cam.heading=sv.cam.heading; cam.tilt=sv.cam.tilt; pin=sv.pin; sunSt.day=sv.day; sunSt.hour=sv.hour; }
+  stopMotion(); hud={}; syncSun(); dirty=true;
+}
+
 /* ---------- niveau de détail ---------- */
 function showMode(){
   document.querySelectorAll('#gMode button').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-mode')===mode));});
@@ -1311,14 +1561,14 @@ function enterLesson(){
   speed=SPEEDS[L.speed]; $('jSpeed').value=L.speed;
   lesson.ecl=L.ecl; $('jViewEcl').setAttribute('aria-pressed',String(L.ecl)); $('jViewNorth').setAttribute('aria-pressed',String(!L.ecl));
   $('jq').value=lesson.city<0&&lesson.place?lesson.place.n[li]:'';
-  SHOWN.forEach(function(k){setOpt(k,L.show[k]);});
+  SHOWN.forEach(function(k){setOpt(k,L.show[k]);}); setOpt('tz',false);
   applyStep(lesson.step);
 }
 function leaveLesson(){
   var sv=lesson.saved; savePrefs();
   lesson.on=false; lesson.follow=null; sunSt.playing=false; speed=1;
   $('gSlot').appendChild(stage);
-  SHOWN.forEach(function(k){setOpt(k,prefs.globe[k]);}); setOpt('sun',prefs.globe.sun);
+  SHOWN.forEach(function(k){setOpt(k,prefs.globe[k]);}); setOpt('sun',prefs.globe.sun); setOpt('tz',prefs.globe.tz);
   if(sv){ cam.lat=sv.cam.lat; cam.lon=sv.cam.lon; cam.range=sv.cam.range; cam.heading=sv.cam.heading; cam.tilt=sv.cam.tilt; pin=sv.pin; sunSt.day=sv.day; sunSt.hour=sv.hour; }
   stopMotion(); syncSun(); dirty=true;
 }
@@ -1326,22 +1576,26 @@ function leaveLesson(){
 if(prefs.globe.mode){ mode=prefs.globe.mode; modeChosen=true; } else mode=coarse?'std':'full';
 M=MODES[mode];
 /* les calques du globe tels qu'on les avait laissés */
-SHOWN.forEach(function(k){setOpt(k,prefs.globe[k]);}); setOpt('sun',prefs.globe.sun);
+SHOWN.forEach(function(k){setOpt(k,prefs.globe[k]);}); setOpt('sun',prefs.globe.sun); setOpt('tz',prefs.globe.tz);
+tz.a=prefs.tz.a; tz.b=prefs.tz.b;
 opt.ex=prefs.globe.ex; $('gRelief').value=opt.ex; $('gReliefOut').textContent='× '+opt.ex;
 
 /* ---------- langue et vue ---------- */
 Site.onLang(function(l){
   li=l==='en'?1:0; hud={}; widths.clear();
-  renderTours(); syncSun(); renderJ(); showMode();
+  renderTours(); syncSun(); renderJ(); renderF(); showMode();
   if(pin&&pin.src) pin.n=pin.src.n[li];
   if(measure.on) measureMsg(); else if(tourMsg) showMsg(tourMsg[7+li]);
   if(!qPop.hidden) renderSearch();
   dirty=true;
 });
 Site.onView(function(v){
-  var here=v==='globe'||v==='jour';
+  var here=v==='globe'||v==='jour'||v==='fuseaux';
   if(here&&!inited) init();
-  if(v==='jour'&&!lesson.on) enterLesson(); else if(v!=='jour'&&lesson.on) leaveLesson();
+  if(v!=='jour'&&lesson.on) leaveLesson();
+  if(v!=='fuseaux'&&tz.on) leaveTz();
+  if(v==='jour'&&!lesson.on) enterLesson();
+  if(v==='fuseaux'&&!tz.on) enterTz();
   if(here){ hud={}; dirty=true; }
 });
 
@@ -1351,7 +1605,7 @@ function init(){
   setNow(); sunSt.hour=Math.round(sunSt.hour*4)/4;
   gl=getGL();
   if(gl) try{
-    pTile=program(VS_TILE,FS_TILE,['aDir','aElev','aUV'],['uVP','uEx','uTex','uNight','uSun','uSunOn','uNightOn']);
+    pTile=program(VS_TILE,FS_TILE,['aDir','aElev','aUV'],['uVP','uEx','uTex','uNight','uTz','uPal','uSun','uSunOn','uNightOn','uTzOn']);
     pLine=program(VS_LINE,FS_LINE,['aDir','aElev'],['uVP','uEx','uEye','uColor','uFade']);
     pAtmo=program(VS_ATMO,FS_ATMO,['aP'],['uEye','uR','uU','uF','uSun','uSunOn']);
     pStar=program(VS_STAR,FS_STAR,['aP'],['uVP','uSize']);
@@ -1403,7 +1657,7 @@ function init(){
 function frame(now){
   requestAnimationFrame(frame);
   var dt=Math.min(0.1,(now-lastT)/1000); lastT=now;
-  if(!(gl||soft)||(Site.view!=='globe'&&Site.view!=='jour')) return;
+  if(!(gl||soft)||(Site.view!=='globe'&&Site.view!=='jour'&&Site.view!=='fuseaux')) return;
   step(dt);
   if(resize()) dirty=true;
   if(!dirty){

@@ -10,6 +10,8 @@ Sources
   - Côtes, frontières, pays, grandes villes : Natural Earth (domaine public).
   - Autres localités dont la population est connue, provinces et États, noms français et anglais : GeoNames (CC BY 4.0).
     (GeoNames ne donne pas la population de la plupart des hameaux : ceux-là ne sont pas repris.)
+  - Fuseaux horaires : timezone-boundary-builder (frontières tirées d'OpenStreetMap, licence ODbL),
+    décalages horaires de la base tz du système (module zoneinfo de Python).
 
 Dépendances : Pillow, numpy. Les téléchargements restent dans le cache ; relancer le script ne les refait pas.
 """
@@ -23,6 +25,7 @@ GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/{layer}/default/{date
 NE = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/{name}.geojson"
 ETOPO = "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2/ETOPO2v2-2006/ETOPO2v2c/raw_binary/ETOPO2v2c_i2_LSB.zip"
 GEONAMES = "https://download.geonames.org/export/dump/"
+TZ_ZIP = "https://github.com/evansiroky/timezone-boundary-builder/releases/download/2026f/timezones-with-oceans.geojson.zip"
 DAY = ("BlueMarble_ShadedRelief_Bathymetry", "2004-08-01", "jpeg")
 NIGHT = ("VIIRS_Black_Marble", "2016-01-01", "png")
 
@@ -330,6 +333,45 @@ def build_places(cache, out):
     print("lieux ok : %d pays, %d villes" % (len(countries), len(cities)), flush=True)
 
 
+def build_timezones(cache, out):
+    """Carte des fuseaux : une image 4096 × 2048 où chaque pixel vaut 1 + (décalage UTC + 12 h) en quarts d'heure.
+
+    Le décalage est l'heure légale d'hiver (sans heure d'été) : le plus petit des décalages de janvier et de juillet.
+    """
+    import datetime, zoneinfo
+    from PIL import ImageDraw
+    z = fetch(TZ_ZIP, os.path.join(cache, "tz", "timezones-with-oceans.geojson.zip"))
+    with zipfile.ZipFile(z) as zf:
+        name = [n for n in zf.namelist() if n.endswith(".json") or n.endswith(".geojson")][0]
+        g = json.loads(zf.read(name))
+    def offset(tzid):
+        tz = zoneinfo.ZoneInfo(tzid)
+        hours = [tz.utcoffset(datetime.datetime(2026, m, 15, 12)).total_seconds() / 3600 for m in (1, 7)]
+        if tzid in ("Africa/Casablanca", "Africa/El_Aaiun"):      # heure normale UTC+1, reculée pendant le ramadan
+            return 1.0
+        if tzid == "Asia/Urumqi":                                 # heure officielle de toute la Chine : UTC+8
+            return 8.0
+        return min(hours)
+    W, H = 4096, 2048
+    polys = []
+    for f in g["features"]:
+        v = int(round((offset(f["properties"]["tzid"]) + 12) * 4)) + 1
+        gm = f["geometry"]
+        for poly in ([gm["coordinates"]] if gm["type"] == "Polygon" else gm["coordinates"]):
+            ring = poly[0]
+            xs = [p[0] for p in ring]
+            ys = [p[1] for p in ring]
+            polys.append(((max(xs) - min(xs)) * (max(ys) - min(ys)), v, [((x + 180) / 360 * W, (90 - y) / 180 * H) for x, y in ring]))
+    im = Image.new("L", (W, H), 0)
+    d = ImageDraw.Draw(im)
+    for _, v, pts in sorted(polys, key=lambda t: -t[0]):      # les grands d'abord : les enclaves les recouvrent
+        if len(pts) >= 3:
+            d.polygon(pts, fill=v)
+    a = np.asarray(im)
+    print("fuseaux : %d zones, %d décalages, %.2f %% de pixels vides" % (len(g["features"]), len(np.unique(a)), 100.0 * (a == 0).mean()), flush=True)
+    im.save(os.path.join(out, "data", "tz.png"), optimize=True)
+
+
 def main():
     cache, out = sys.argv[1], sys.argv[2]
     levels = [int(x) for x in sys.argv[3].split(",")] if len(sys.argv) > 3 else [0, 1, 2, 3]
@@ -337,6 +379,7 @@ def main():
     os.makedirs(os.path.join(out, "tiles"), exist_ok=True)
     build_vectors(cache, out)
     build_places(cache, out)
+    build_timezones(cache, out)
     build_elev(cache, out)
     build_night(cache, out)
     meta = build_day(cache, out, levels)
