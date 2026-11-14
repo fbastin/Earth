@@ -93,7 +93,7 @@ var EN_P={
   pM1:"<b>The world population is still growing, but more and more slowly.</b> Its growth rate has been falling since the 1960s.",
   pM2:"<b>A projection is not a certain forecast.</b> It extends trends; its range tells how far it can be trusted.",
   pM3:"<b>A large country is not necessarily a rich one.</b> Population and GDP per capita draw two very different maps.",
-  pFoot:"Population: United Nations, World Population Prospects 2024 (medium variant, as of 1 July). GDP per capita: World Bank, then IMF forecasts and the OECD long-term scenario, in constant 2021 international dollars. 80% ranges computed from the past errors of projections by the <a class=\"inline\" href=\"https://github.com/fbastin/pib-mondial\">pib-mondial</a> project. Borders are indicative (Natural Earth)."
+  pFoot:"Population: United Nations, World Population Prospects 2024 (medium variant, as of 1 July). GDP per capita: World Bank (World Development Indicators), then International Monetary Fund (<a class=\"inline\" href=\"https://www.imf.org/en/Publications/WEO\">World Economic Outlook Database</a>) and the OECD long-term scenario, spliced and converted to constant 2021 international dollars. 80% ranges computed from the past errors of projections by the <a class=\"inline\" href=\"https://github.com/fbastin/pib-mondial\">pib-mondial</a> project. Borders are indicative (Natural Earth)."
 };
 for(ek in EN_P) Site.EN[ek]=EN_P[ek];
 var D={

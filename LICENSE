@@ -33,4 +33,5 @@ README.md (section "Credits and data licenses"). In particular, the
 place files data/places*.json contain GeoNames data, licensed under
 Creative Commons Attribution 4.0 (CC BY 4.0), which requires attribution,
 and data/population.json contains United Nations, World Bank, IMF and OECD
-data under their respective terms.
+data under their respective terms; the IMF's terms require its permission for
+commercial reuse.

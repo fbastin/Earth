@@ -78,7 +78,7 @@ The files in `tiles/` and `data/` are derived from the sources below and remain 
 | `data/places.json` | Natural Earth (countries, major cities) and GeoNames (other places, provinces and states, French and English names) | Natural Earth: public domain. GeoNames: CC BY 4.0 |
 | `data/places-small.json`, `data/places-tiny.json`, `data/places-hamlets.json` | GeoNames | CC BY 4.0 |
 | `data/pays.png`, `data/pays.json` | Natural Earth (countries at 1:50,000,000) | Public domain |
-| `data/population.json` | Population: United Nations, World Population Prospects 2024. GDP per capita: World Bank (World Development Indicators), IMF (World Economic Outlook, October 2026), OECD (long-term scenario, Economic Outlook 117). Ranges: pib-mondial | UN: CC BY 3.0 IGO. World Bank: CC BY 4.0. OECD: CC BY 4.0. IMF: free reuse with attribution under the IMF's terms of use |
+| `data/population.json` | Population: United Nations, World Population Prospects 2024. GDP per capita: World Bank (World Development Indicators), IMF (World Economic Outlook, October 2026), OECD (long-term scenario, Economic Outlook 117). Ranges: pib-mondial | UN: CC BY 3.0 IGO. World Bank: CC BY 4.0. OECD: CC BY 4.0 under the OECD terms and conditions (content published since 1 July 2024). IMF: not an open licence; the IMF's terms allow copying, derivative works and redistribution with attribution, and require its permission for commercial reuse |
 | `data/tz.png` | Time zone boundaries from timezone-boundary-builder (release 2026f), derived from OpenStreetMap; UTC offsets from the IANA time zone database | Boundaries: © OpenStreetMap contributors, Open Database License (ODbL). IANA database: public domain |
 
 Acknowledgments requested by the sources:
@@ -87,6 +87,12 @@ Acknowledgments requested by the sources:
 - Made with Natural Earth: https://www.naturalearthdata.com
 - Time zone boundaries © OpenStreetMap contributors, available under the Open Database License: https://www.openstreetmap.org/copyright and https://github.com/evansiroky/timezone-boundary-builder
 - GeoNames, licensed under Creative Commons Attribution 4.0: https://www.geonames.org and https://creativecommons.org/licenses/by/4.0/
+- United Nations, Department of Economic and Social Affairs, Population Division (2024). World Population Prospects 2024, Online Edition. Licensed under CC BY 3.0 IGO: https://population.un.org/wpp/ and https://creativecommons.org/licenses/by/3.0/igo/
+- World Bank, World Development Indicators, licensed under CC BY 4.0: https://datacatalog.worldbank.org/search/dataset/0037712/World-Development-Indicators
+- Source: International Monetary Fund, World Economic Outlook Database, October 2026, https://www.imf.org/en/Publications/WEO
+- OECD (2025), OECD Economic Outlook No. 117, long-term baseline projections, https://www.oecd.org/en/topics/economic-outlook.html
+
+The GDP figures are not those sources' figures as published: pib-mondial splices the World Bank levels with the growth rates of the IMF forecasts and of the OECD scenario, converts them to purchasing power parity, and computes the ranges. None of these organisations endorses the result. Anyone reusing `data/population.json` commercially needs the IMF's permission for the part derived from its data (copyright@imf.org).
 
 The page also loads two typefaces from Google Fonts, Bricolage Grotesque and Instrument Sans, under the SIL Open Font License. They are not in the repository.
 
