@@ -1,4 +1,4 @@
-# La Terre
+# Earth
 
 An interactive teaching site about the Earth, in French and English, meant as classroom support. It is a single page and depends on no outside service: the imagery, the relief and the places are all in the repository.
 
