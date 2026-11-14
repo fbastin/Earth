@@ -1,0 +1,1387 @@
+<meta charset="utf-8">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>La Terre interactive</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout : un observatoire. Une barre de navigation mène à deux salles.
+   Globe : un grand hublot sombre où l'on manipule la Terre, les commandes posées sur la vitre.
+   Saisons : deux hublots (orbite, globe) en haut, la barre de date dessous, puis les réglages et les mesures,
+   puis les deux mécanismes et le bilan annuel. */
+:root{
+  --bg:#eceff6; --surface:#f8f9fc; --ink:#151a2d; --ink-2:#4b5472; --line:#cdd4e3; --hl:#dfe5f1; --bad:#b3261e;
+  --sun:#b76a00; --sun-fill:#f2b53c; --night-fill:#27336a; --space:#080c1b;
+  --s1:#b45309; --s2:#2563eb;
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#10152a; --surface:#182040; --ink:#e9edf7; --ink-2:#a5aeca; --line:#2c3659; --hl:#26336a; --bad:#ff8f85;
+  --sun:#f2b53c; --sun-fill:#f2b53c; --night-fill:#3a4a8f; --space:#080c1b;
+  --s1:#b87a14; --s2:#3f7ae0; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#10152a; --surface:#182040; --ink:#e9edf7; --ink-2:#a5aeca; --line:#2c3659; --hl:#26336a; --bad:#ff8f85;
+  --sun:#f2b53c; --sun-fill:#f2b53c; --night-fill:#3a4a8f; --space:#080c1b;
+  --s1:#b87a14; --s2:#3f7ae0; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;margin:0;
+  padding-block:16px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.page{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+.page[data-view="globe"]{max-width:1480px}
+.view{display:flex;flex-direction:column;gap:28px;min-width:0}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* navigation du site */
+.site{display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-weight:700;font-size:1.25rem;letter-spacing:-0.01em;color:var(--ink);text-decoration:none}
+.tabs{display:flex;gap:4px;flex:1;min-width:0}
+.tabs a{color:var(--ink-2);text-decoration:none;font-weight:600;font-size:.95rem;padding:6px 12px;border-radius:999px;white-space:nowrap}
+.tabs a:hover{background:var(--hl);color:var(--ink)}
+.tabs a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.tabs a:focus-visible,.brand:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:clamp(2rem,5vw,3.25rem);font-weight:700;letter-spacing:-0.02em}
+h2{font-size:1.5rem;font-weight:700}
+h3{font-size:1.1rem;font-weight:500}
+p{margin:0;max-width:65ch}
+.small{font-size:.875rem;color:var(--ink-2)}
+.num{font-variant-numeric:tabular-nums}
+.nw{white-space:nowrap}
+
+header{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px;align-items:start}
+header h1{grid-column:1;grid-row:1}
+.lede{grid-column:1/-1;font-size:1.125rem;color:var(--ink-2)}
+.lede b{color:var(--ink);font-weight:600}
+.langs{display:inline-flex;gap:2px;border:1px solid var(--line);border-radius:999px;padding:3px}
+.langs button{border:0;padding:4px 11px;font-size:.8rem;font-weight:600;letter-spacing:.05em}
+.langs button:hover{background:var(--hl)}
+.langs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+figure{margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+canvas{display:block;width:100%;aspect-ratio:100/66;background:var(--space);border-radius:10px}
+#orbit{cursor:grab;touch-action:pan-y}
+figcaption{font-size:.875rem;color:var(--ink-2)}
+
+.datebar{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:10px 16px}
+.datebar output{font-family:var(--display);font-size:1.5rem;font-weight:700;width:13ch}
+.datebar .jumps{grid-column:1/-1}
+input[type=range]{width:100%;accent-color:var(--sun);margin:0;height:28px}
+.months{display:grid;grid-template-columns:repeat(12,1fr);font-size:.75rem;color:var(--ink-2);text-align:center;letter-spacing:.04em}
+.slider{min-width:0}
+button{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:.875rem;cursor:pointer}
+button:hover{border-color:var(--ink-2)}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600;padding:8px 16px;min-width:7.5em}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+
+.bench{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:32px;padding-block:24px;border-block:1px solid var(--line)}
+.controls{display:flex;flex-direction:column;gap:22px}
+.control{display:flex;flex-direction:column;gap:6px}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-weight:600}
+.head .val{font-family:var(--display);font-size:1.25rem}
+
+/* champ ville / latitude */
+.place{display:flex;flex-direction:column;gap:4px;margin-block:2px 6px}
+.place label{font-size:.875rem;color:var(--ink-2)}
+.combo{position:relative}
+.combo input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 34px 8px 12px;width:100%}
+.combo input::placeholder{color:var(--ink-2);opacity:.75}
+.combo input[aria-invalid="true"]{border-color:var(--bad)}
+.chev{position:absolute;right:14px;top:50%;width:8px;height:8px;border-right:1.5px solid var(--ink-2);border-bottom:1.5px solid var(--ink-2);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.pop{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(8,12,27,.22);overflow:hidden}
+.pophead{padding:8px 12px;font-size:.8rem;color:var(--ink-2)}
+.pophead + ul{border-top:1px solid var(--line)}
+.pop ul{position:relative;list-style:none;margin:0;padding:4px;max-height:min(272px,46vh);overflow-y:auto;overscroll-behavior:contain}
+.pop li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:6px 10px;border-radius:6px;cursor:pointer}
+.pop li:hover,.pop li.act{background:var(--hl)}
+.pop li.cur .n{font-weight:600}
+.pop .n{min-width:0}
+.pop .c{color:var(--ink-2);font-size:.85em;font-weight:400;margin-left:4px}
+.pop .l{color:var(--ink-2);font-size:.875rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.measures{display:flex;flex-direction:column;gap:18px;min-width:0}
+dl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px 20px}
+dt{font-size:.75rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-2)}
+dd{margin:2px 0 0;font-family:var(--display);font-size:1.4rem;font-weight:500;line-height:1.2}
+dd small{font-family:var(--body);font-size:.8rem;color:var(--ink-2);display:block}
+#story{font-size:1.05rem}
+
+.effects{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.effect{display:flex;flex-direction:column;gap:10px;min-width:0}
+#beam{width:100%;max-width:420px;height:auto;display:block}
+.beam-ray{fill:var(--sun-fill);opacity:.38}
+.beam-foot{stroke:var(--sun);stroke-width:6;stroke-linecap:round}
+.ground{stroke:var(--ink-2);stroke-width:1.5}
+.beam-edge{stroke:var(--sun);stroke-width:1.2;fill:none}
+.svg-t{fill:var(--ink-2);font-size:12px;font-family:var(--body)}
+.daybar{height:26px;border-radius:6px;max-width:420px;background:var(--night-fill)}
+.dayticks{display:flex;justify-content:space-between;max-width:420px;font-size:.75rem;color:var(--ink-2)}
+
+.chartbox{display:flex;flex-direction:column;gap:10px}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:.875rem}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+#chart{position:relative;touch-action:pan-y;cursor:crosshair}
+#chart svg{display:block;width:100%}
+.grid{stroke:var(--line);stroke-width:1}
+.rule{stroke:var(--ink);stroke-width:1.2}
+.hover{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 3}
+.l1{stroke:var(--s1);fill:none;stroke-width:2;stroke-linejoin:round}
+.l2{stroke:var(--s2);fill:none;stroke-width:2;stroke-linejoin:round}
+.d1{fill:var(--s1);stroke:var(--bg);stroke-width:2}
+.d2{fill:var(--s2);stroke:var(--bg);stroke-width:2}
+.svg-l{fill:var(--ink);font-size:12px;font-family:var(--body);font-weight:600}
+#tip{position:absolute;top:8px;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:.8rem;white-space:nowrap;box-shadow:0 4px 14px rgba(8,12,27,.15)}
+#tip i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+#tip b{display:block;font-weight:600}
+details{font-size:.875rem}
+summary{cursor:pointer;color:var(--ink-2);width:max-content;max-width:100%}
+.tablewrap{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;font:inherit;font-variant-numeric:tabular-nums}
+th,td{padding:4px 14px 4px 0;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;color:var(--ink-2)}
+
+.distance{background:var(--surface);border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:8px}
+footer{font-size:.8rem;color:var(--ink-2)}
+
+/* ---------- globe 3D ---------- */
+/* Le hublot est toujours sombre : ses commandes reprennent les jetons du thème sombre, quel que soit le thème de la page. */
+.gstage{--surface:#141b36;--ink:#eef2fb;--ink-2:#aab3cf;--line:rgba(255,255,255,.17);--hl:#26336a;--bg:#080c1b;--glass:rgba(12,17,36,.8);
+  color-scheme:dark;position:relative;height:clamp(440px,calc(100vh - 150px),980px);border-radius:14px;overflow:hidden;
+  background:var(--space);color:var(--ink);font-size:.875rem}
+.gstage:fullscreen{border-radius:0;height:100%}
+.gstage canvas{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;border-radius:0;background:none}
+#gl{touch-action:none;cursor:grab;outline:none}
+#gl.drag{cursor:grabbing}
+#gl.measure{cursor:crosshair}
+#gl:focus-visible{box-shadow:inset 0 0 0 2px var(--sun)}
+#glabels{pointer-events:none}
+.gsearch{position:absolute;left:12px;top:12px;width:min(340px,calc(100% - 76px));z-index:3}
+.gsearch input{background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:10px;padding:9px 12px}
+.gsearch .pop li{align-items:center}
+.gsearch .pop .l{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
+.gtools{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:6px;z-index:2}
+.gtools button{width:40px;height:40px;padding:0;border-radius:10px;background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  display:grid;place-items:center;font-weight:600;font-size:.8rem;line-height:1}
+.gtools button:hover{background:var(--hl)}
+.gtools button[aria-pressed="true"]{background:var(--sun-fill);border-color:var(--sun-fill);color:#151a2d}
+.gtools svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.gtools .sep{height:2px}
+#gNeedle{transform-origin:12px 12px}
+.gpanel{position:absolute;left:12px;top:60px;width:min(300px,calc(100% - 76px));max-height:calc(100% - 132px);overflow-y:auto;z-index:2;
+  background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;
+  padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.gpanel label.chk{display:flex;gap:8px;align-items:center;cursor:pointer}
+.gpanel input[type=checkbox]{accent-color:var(--sun-fill);width:16px;height:16px;margin:0;flex:none}
+.gpanel .row{display:flex;flex-direction:column;gap:2px}
+.gpanel .row .head{font-weight:500;font-size:.875rem}
+.gpanel .row .head .val{font-family:var(--body);font-size:.875rem;font-weight:600}
+.gpanel input[type=range]{accent-color:var(--sun-fill);height:24px}
+.gpanel hr{border:0;border-top:1px solid var(--line);margin:2px 0;width:100%}
+.gmode{margin-top:4px}
+.gmode button{padding:4px 11px;font-size:.8rem}
+.gmode button[aria-pressed="true"]{background:var(--sun-fill);border-color:var(--sun-fill);color:#151a2d;font-weight:600}
+#gModeTxt{margin-top:6px;font-size:.78rem;line-height:1.4}
+.gsun{display:flex;flex-direction:column;gap:8px}
+.gsun .chips button{padding:4px 10px;font-size:.8rem}
+.gfoot{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;pointer-events:none;z-index:1}
+.gmsg{margin:0 12px;max-width:min(560px,calc(100% - 24px));background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid var(--line);border-radius:10px;padding:8px 12px;pointer-events:auto}
+.gmsg b{font-weight:600}
+.gmsg.bad{border-color:var(--sun-fill)}
+.gstatus{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:2px 18px;padding:6px 12px;font-size:.78rem;color:var(--ink-2);
+  background:linear-gradient(to top,rgba(5,8,20,.85),rgba(5,8,20,0));font-variant-numeric:tabular-nums}
+.gstatus span{white-space:nowrap}
+.gstatus #gCoord{color:var(--ink);min-width:17ch}
+.gscale{margin-left:auto;display:inline-flex;align-items:center;gap:8px}
+.gscale i{display:block;height:6px;border:1.5px solid var(--ink);border-top:0;width:80px}
+.gtour{display:flex;flex-direction:column;gap:10px}
+.ghelp{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 28px;margin:0;padding:0;list-style:none;font-size:.875rem;color:var(--ink-2)}
+.ghelp b{color:var(--ink);font-weight:600}
+
+/* ---------- leçon « Jour et nuit » : le globe à gauche, les étapes à droite ---------- */
+.jgrid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:28px;align-items:start}
+#jStage{position:sticky;top:max(12px,env(safe-area-inset-top,0px));min-width:0}
+#jStage .gstage{height:clamp(400px,calc(100vh - 120px),700px)}
+.jside{display:flex;flex-direction:column;gap:18px;min-width:0}
+.jclock{display:flex;flex-direction:column;gap:8px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.jclock .now{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.jclock output{font-family:var(--display);font-size:1.35rem;font-weight:700;font-variant-numeric:tabular-nums}
+.jclock .row{display:grid;grid-template-columns:5.5em minmax(0,1fr) auto;align-items:center;gap:4px 12px;font-size:.9rem}
+.jclock .row label,.jclock .row .lab{font-weight:600}
+.jclock .jview{grid-template-columns:5.5em minmax(0,1fr)}
+.jclock .jview button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.jsteps .place{margin:0}
+.jsteps .combo input{font-size:.95rem}
+.jclock .row .val{color:var(--ink-2);font-variant-numeric:tabular-nums;min-width:8.5em;text-align:right}
+.jclock .row button{padding:3px 10px;font-size:.8rem}
+#view-jour p,#view-jour .jmyths ul{max-width:none}
+#jLive{font-size:1.02rem;min-height:3em}
+.jshow{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.9rem;min-width:0}
+.jshow legend{padding:0;margin-bottom:6px;font-weight:600}
+.jshow label.chk{display:flex;gap:7px;align-items:center;cursor:pointer}
+.jshow input{accent-color:var(--sun);width:16px;height:16px;margin:0;flex:none}
+.jsteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;counter-reset:j}
+.jsteps li{counter-increment:j;display:flex;flex-direction:column;gap:8px;padding:14px 16px;border-radius:10px}
+.jsteps li.on{background:var(--surface)}
+.jsteps h3{font-weight:700}
+.jsteps h3::before{content:counter(j) ". ";color:var(--sun)}
+.jsteps p{font-size:.95rem;color:var(--ink-2)}
+.jsteps li.on p{color:var(--ink)}
+.jsteps .go{align-self:flex-start}
+.jsteps li.on .go{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+.jsteps .chips button[aria-pressed="true"]{background:var(--hl);border-color:var(--ink-2)}
+.jmyths{background:var(--surface);border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:10px}
+.jmyths ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px;max-width:75ch}
+.jmyths b{font-weight:600}
+a.inline{color:inherit;text-underline-offset:3px}
+
+@media (max-width:600px){            /* téléphone : les onglets passent sous le nom du site */
+  .site .langs{margin-left:auto}
+  .tabs{order:3;flex:1 0 100%;flex-wrap:wrap}
+  .tabs a{padding:6px 10px}
+}
+@media (max-width:900px){
+  .jgrid{grid-template-columns:1fr}
+  #jStage{position:static}
+  #jStage .gstage{height:clamp(360px,58vh,560px)}
+}
+@media (max-width:760px){
+  .gstage{height:clamp(420px,calc(100vh - 190px),720px)}
+  .gtools button{width:36px;height:36px}
+  #gEx{display:none}
+  .gstatus{gap:0 14px}
+  .stage,.bench,.effects{grid-template-columns:1fr}
+  .bench{gap:24px}
+  .datebar{grid-template-columns:auto 1fr}
+  .datebar .slider{grid-column:1/-1}
+  .datebar output{width:auto;white-space:nowrap}
+}
+@media (max-width:380px){ .datebar output{font-size:1.25rem} }
+</style>
+
+<div class="page" id="page" data-view="globe">
+  <nav class="site" aria-label="Sections du site" data-i18n-attr="aria-label:navAria">
+    <a class="brand" href="#globe" data-view="globe" data-i18n="brand">La Terre</a>
+    <div class="tabs">
+      <a href="#globe" data-view="globe" aria-current="page" data-i18n="navGlobe">Globe 3D</a>
+      <a href="#jour" data-view="jour" data-i18n="navDay">Jour et nuit</a>
+      <a href="#saisons" data-view="saisons" data-i18n="navSeasons">Saisons</a>
+    </div>
+    <div class="langs" role="group" aria-label="Langue / Language">
+      <button type="button" id="lang-fr" lang="fr" aria-label="Français" aria-pressed="true">FR</button>
+      <button type="button" id="lang-en" lang="en" aria-label="English" aria-pressed="false">EN</button>
+    </div>
+  </nav>
+
+  <main class="view" id="view-globe">
+    <h1 class="vh" data-i18n="gH1">Explorer la Terre en 3D</h1>
+    <div id="gSlot">
+    <div class="gstage" id="gstage" aria-busy="true">
+      <canvas id="gl" tabindex="0" aria-label="Globe terrestre interactif. Flèches pour se déplacer, plus et moins pour zoomer." data-i18n-attr="aria-label:gAria"></canvas>
+      <canvas id="glabels" aria-hidden="true"></canvas>
+
+      <div class="gsearch combo">
+        <input type="text" id="gq" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="gqList" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" placeholder="Ville, pays ou coordonnées" aria-label="Chercher un lieu" data-i18n-attr="placeholder:gPh;aria-label:gSearchAria">
+        <div class="pop" id="gqPop" hidden>
+          <div class="pophead" id="gqHead" role="status" hidden></div>
+          <ul id="gqList" role="listbox" aria-label="Lieux" data-i18n-attr="aria-label:gPlaces"></ul>
+        </div>
+      </div>
+
+      <div class="gtools" role="toolbar" aria-label="Navigation" data-i18n-attr="aria-label:gToolbar">
+        <button type="button" id="gLayers" aria-expanded="false" aria-controls="gPanel" aria-label="Calques et réglages" title="Calques et réglages" data-i18n-attr="aria-label:gLayersT;title:gLayersT"><svg viewBox="0 0 24 24"><path d="M12 4 3 9l9 5 9-5-9-5Z"/><path d="m3 14 9 5 9-5"/></svg></button>
+        <span class="sep"></span>
+        <button type="button" id="gNorth" aria-label="Remettre le nord en haut" title="Remettre le nord en haut" data-i18n-attr="aria-label:gNorthT;title:gNorthT"><svg viewBox="0 0 24 24"><g id="gNeedle"><path d="M12 3 8.5 12h7L12 3Z" fill="currentColor"/><path d="M8.5 12 12 21l3.5-9"/></g></svg></button>
+        <button type="button" id="gIn" aria-label="Zoomer" title="Zoomer" data-i18n-attr="aria-label:gInT;title:gInT"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button type="button" id="gOut" aria-label="Dézoomer" title="Dézoomer" data-i18n-attr="aria-label:gOutT;title:gOutT"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+        <button type="button" id="gTilt" aria-pressed="false" aria-label="Incliner la vue" title="Incliner la vue" data-i18n-attr="aria-label:gTiltT;title:gTiltT">3D</button>
+        <button type="button" id="gHome" aria-label="Revenir à la Terre entière" title="Revenir à la Terre entière" data-i18n-attr="aria-label:gHomeT;title:gHomeT"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c3 3 3 14 0 17M12 3.5c-3 3-3 14 0 17"/></svg></button>
+        <span class="sep"></span>
+        <button type="button" id="gMeasure" aria-pressed="false" aria-label="Mesurer une distance" title="Mesurer une distance" data-i18n-attr="aria-label:gMeasureT;title:gMeasureT"><svg viewBox="0 0 24 24"><path d="m3 17 14-14 4 4L7 21l-4-4Z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg></button>
+        <button type="button" id="gFull" aria-label="Plein écran" title="Plein écran" data-i18n-attr="aria-label:gFullT;title:gFullT"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      </div>
+
+      <div class="gpanel" id="gPanel" hidden>
+        <label class="chk"><input type="checkbox" id="gBorders" data-opt="borders" checked> <span data-i18n="gLBorders">Frontières et côtes</span></label>
+        <label class="chk"><input type="checkbox" id="gNames" data-opt="names" checked> <span data-i18n="gLNames">Noms de lieux</span></label>
+        <label class="chk"><input type="checkbox" id="gAxis" data-opt="axis"> <span data-i18n="gLAxis">Axe de rotation</span></label>
+        <label class="chk"><input type="checkbox" id="gEquator" data-opt="equator"> <span data-i18n="gLEquator">Équateur</span></label>
+        <label class="chk"><input type="checkbox" id="gCircles" data-opt="circles"> <span data-i18n="gLCircles">Tropiques et cercles polaires</span></label>
+        <label class="chk"><input type="checkbox" id="gGrid" data-opt="grid"> <span data-i18n="gLGrid">Méridiens et parallèles</span></label>
+        <div class="row">
+          <label class="head" for="gRelief"><span data-i18n="gLRelief">Relief exagéré</span> <span class="val num" id="gReliefOut">× 10</span></label>
+          <input type="range" id="gRelief" min="1" max="30" step="1" value="10">
+        </div>
+        <div class="row">
+          <span class="head" id="gModeLab" data-i18n="gModeL">Niveau de détail</span>
+          <div class="chips gmode" id="gMode" role="group" aria-labelledby="gModeLab">
+            <button type="button" data-mode="light" aria-pressed="false" data-i18n="gModeLight">Léger</button>
+            <button type="button" data-mode="std" aria-pressed="false" data-i18n="gModeStd">Standard</button>
+            <button type="button" data-mode="full" aria-pressed="false" data-i18n="gModeFull">Complet</button>
+          </div>
+          <p class="small" id="gModeTxt"></p>
+        </div>
+        <hr>
+        <label class="chk"><input type="checkbox" id="gSun" data-opt="sun"> <span data-i18n="gLSun">Jour et nuit</span></label>
+        <div class="gsun" id="gSunBox" hidden>
+          <div class="row">
+            <label class="head" for="gDay"><span data-i18n="gLDate">Date</span> <span class="val num" id="gDayOut"></span></label>
+            <input type="range" id="gDay" min="0" max="364" step="1" value="171">
+          </div>
+          <div class="row">
+            <label class="head" for="gHour"><span data-i18n="gLHour">Heure (UTC)</span> <span class="val num" id="gHourOut"></span></label>
+            <input type="range" id="gHour" min="0" max="24" step="0.25" value="12">
+          </div>
+          <div class="chips">
+            <button type="button" id="gNow" data-i18n="gNow">Maintenant</button>
+            <button type="button" id="gSpin" aria-pressed="false">▶ 24 h</button>
+          </div>
+          <p class="small" id="gSunTxt"></p>
+        </div>
+      </div>
+
+      <div class="gfoot">
+        <p class="gmsg" id="gMsg" role="status" hidden></p>
+        <div class="gstatus">
+          <span id="gCoord">—</span>
+          <span id="gElev"></span>
+          <span id="gAlt"></span>
+          <span id="gEx"></span>
+          <span class="gscale" id="gScale"><i id="gScaleBar"></i><span id="gScaleTxt"></span></span>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+    <section class="gtour">
+      <h2 data-i18n="gH2">Lieux à explorer</h2>
+      <div class="chips" id="gTours"></div>
+    </section>
+
+    <ul class="ghelp">
+      <li data-i18n="gHelp1"><b>Se déplacer.</b> Faites glisser le globe. Au clavier&nbsp;: les flèches.</li>
+      <li data-i18n="gHelp2"><b>Zoomer.</b> Molette, pincement à deux doigts ou <span class="nw">double-clic</span>.</li>
+      <li data-i18n="gHelp3"><b>Incliner et tourner.</b> Clic droit ou Maj + glisser&nbsp;; sur écran tactile, deux doigts qui montent ou qui pivotent.</li>
+      <li data-i18n="gHelp4"><b>Mesurer.</b> Activez la règle puis cliquez deux points ou plus&nbsp;: la distance suit la courbure de la Terre.</li>
+    </ul>
+
+    <footer data-i18n="gFoot">Images&nbsp;: NASA Blue Marble (jour) et Black Marble 2016 (nuit), environ 1&nbsp;km par pixel au plus fin. Relief&nbsp;: NOAA ETOPO2, lissé à 14&nbsp;km&nbsp;; les altitudes affichées sont donc approximatives et les sommets un peu rabotés. Côtes, frontières et grandes villes&nbsp;: Natural Earth. Autres localités, villages et hameaux, provinces et États&nbsp;: GeoNames (CC BY 4.0). Les frontières sont indicatives.</footer>
+  </main>
+
+  <main class="view" id="view-jour" hidden>
+    <header>
+      <h1 data-i18n="jH1">Pourquoi <span class="nw">fait-il</span> jour, puis nuit&nbsp;?</h1>
+      <p class="lede" data-i18n="jLede">Parce que la Terre est une boule qui <b>tourne sur elle-même</b> devant le Soleil. À chaque instant une moitié est éclairée et l'autre est dans l'ombre. En un tour, chaque endroit passe de l'une à l'autre.</p>
+    </header>
+
+    <div class="jgrid">
+      <div id="jStage"></div>
+      <div class="jside">
+        <div class="jclock">
+          <div class="now">
+            <button class="primary" id="jPlay" type="button">▶ Lancer</button>
+            <output id="jTime"></output>
+          </div>
+          <div class="row">
+            <label for="jDay" data-i18n="gLDate">Date</label>
+            <input type="range" id="jDay" min="0" max="364" step="1" value="171">
+            <button type="button" id="jToday" data-i18n="jToday">Aujourd'hui</button>
+          </div>
+          <div class="row">
+            <label for="jSpeed" data-i18n="jSpeedL">Vitesse</label>
+            <input type="range" id="jSpeed" min="0" max="6" step="1" value="3">
+            <span class="val" id="jSpeedOut"></span>
+          </div>
+          <div class="row jview" role="group" aria-label="Vue" data-i18n-attr="aria-label:jViewL">
+            <span class="lab" data-i18n="jViewL">Vue</span>
+            <div class="chips">
+              <button type="button" id="jViewEcl" aria-pressed="true" data-i18n="jViewEcl">Axe penché de 23,4°</button>
+              <button type="button" id="jViewNorth" aria-pressed="false" data-i18n="jViewNorth">Axe vertical</button>
+            </div>
+          </div>
+          <p id="jLive" aria-live="off"></p>
+          <fieldset class="jshow">
+            <legend data-i18n="jShow">Afficher sur le globe</legend>
+            <label class="chk"><input type="checkbox" id="jAxis" data-opt="axis"> <span data-i18n="gLAxis">Axe de rotation</span></label>
+            <label class="chk"><input type="checkbox" id="jEquator" data-opt="equator"> <span data-i18n="gLEquator">Équateur</span></label>
+            <label class="chk"><input type="checkbox" id="jCircles" data-opt="circles"> <span data-i18n="gLCircles">Tropiques et cercles polaires</span></label>
+            <label class="chk"><input type="checkbox" id="jGrid" data-opt="grid"> <span data-i18n="gLGrid">Méridiens et parallèles</span></label>
+            <label class="chk"><input type="checkbox" id="jBorders" data-opt="borders" checked> <span data-i18n="gLBorders">Frontières et côtes</span></label>
+            <label class="chk"><input type="checkbox" id="jNames" data-opt="names" checked> <span data-i18n="gLNames">Noms de lieux</span></label>
+          </fieldset>
+        </div>
+        <ol class="jsteps" id="jSteps">
+          <li data-step="0">
+            <h3 data-i18n="j1h">Une moitié éclairée, une moitié dans l'ombre</h3>
+            <p data-i18n="j1p">Le Soleil n'éclaire qu'un côté de la boule terrestre. De ce côté il fait jour. De l'autre il fait nuit, et l'on voit briller les lumières des villes. La limite entre les deux s'appelle le terminateur.</p>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+          <li data-step="1">
+            <h3 data-i18n="j2h">La Terre tourne sur elle-même</h3>
+            <p data-i18n="j2p">Elle fait un tour en 24 heures, d'ouest en est, autour de l'axe qui traverse les deux pôles (le trait blanc). Cet axe est penché de 23,4° par rapport à son orbite autour du Soleil, et le globe est montré ainsi. Ici la caméra reste fixe par rapport au Soleil&nbsp;: la lumière ne bouge pas, ce sont les continents qui défilent et passent tour à tour du jour à la nuit.</p>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+          <li data-step="2">
+            <h3 data-i18n="j3h">Suivez une ville</h3>
+            <p data-i18n="j3p">Choisissez une ville et regardez-la tourner avec la Terre. Quand elle franchit la limite vers la lumière, le Soleil s'y lève&nbsp;; quand elle repasse dans l'ombre, il se couche. Comme personne ne sent ce mouvement, on a l'impression que c'est le Soleil qui traverse le ciel.</p>
+            <div class="chips" id="jCities"></div>
+            <div class="place">
+              <label for="jq" data-i18n="jqL">Ou indiquez la ville à suivre</label>
+              <div class="combo">
+                <input type="text" id="jq" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="jqList" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" placeholder="Sherbrooke, Nairobi, Lima…" data-i18n-attr="placeholder:jqPh">
+                <div class="pop" id="jqPop" hidden>
+                  <div class="pophead" id="jqHead" role="status" hidden></div>
+                  <ul id="jqList" role="listbox" aria-label="Villes" data-i18n-attr="aria-label:cities"></ul>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+          <li data-step="3">
+            <h3 data-i18n="j4h">Midi ici, minuit en face</h3>
+            <p data-i18n="j4p">Cette fois la caméra tourne avec la Terre, comme nous. Le petit soleil marque l'endroit où il est exactement midi. Il avance de 15° de longitude par heure, soit 360° en 24 heures. À l'opposé du globe, il est minuit. Voilà pourquoi l'heure change d'un pays à l'autre.</p>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+          <li data-step="4">
+            <h3 data-i18n="j5h">Des jours plus longs en été</h3>
+            <p data-i18n="j5p">L'axe de la Terre est penché de 23,4°. Le 21 juin, le pôle Nord penche vers le Soleil&nbsp;: au nord, chaque ville reste plus longtemps dans la lumière que dans l'ombre, et au-delà du cercle arctique le Soleil ne se couche plus. Le 21 décembre, c'est l'inverse. Aux équinoxes, le jour et la nuit durent 12 heures partout. La vue <a class="inline" href="#saisons" data-view="saisons">Saisons</a> détaille ce mécanisme.</p>
+            <div class="chips" id="jDates">
+              <button type="button" data-jday="171" aria-pressed="true" data-i18n="jD1">21 juin</button>
+              <button type="button" data-jday="354" aria-pressed="false" data-i18n="jD2">21 décembre</button>
+              <button type="button" data-jday="78" aria-pressed="false" data-i18n="jD3">20 mars</button>
+            </div>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <section class="jmyths">
+      <h2 data-i18n="jMh">Ce que le jour et la nuit ne sont pas</h2>
+      <ul>
+        <li data-i18n="jM1"><b>Le Soleil ne tourne pas autour de la Terre.</b> Il semble se lever à l'est et se coucher à l'ouest parce que nous tournons avec le sol, d'ouest en est.</li>
+        <li data-i18n="jM2"><b>La nuit ne vient ni de la Lune ni des nuages.</b> Rien ne cache le Soleil&nbsp;: nous sommes simplement du côté de la Terre qui lui tourne le dos.</li>
+        <li data-i18n="jM3"><b>Le jour et la nuit ne sont pas les saisons.</b> Un tour de la Terre sur elle-même dure 24 heures et donne le jour et la nuit. Un tour autour du Soleil dure un an et, avec l'axe penché, donne les saisons.</li>
+      </ul>
+    </section>
+
+    <footer data-i18n="jFoot">Position du Soleil calculée à une fraction de degré près. La limite entre jour et nuit est dessinée avec une bande de crépuscule&nbsp;; la réfraction de l'atmosphère n'est pas prise en compte. Heures en temps universel (UTC).</footer>
+  </main>
+
+  <main class="view" id="view-saisons" hidden>
+  <header>
+    <h1 data-i18n="h1">Pourquoi y <span class="nw">a-t-il</span> des saisons&nbsp;?</h1>
+    <p class="lede" data-i18n="lede">Parce que l'axe de la Terre est <b>incliné de 23,4°</b> et qu'il <b>garde la même direction</b> tout au long de l'orbite. Chaque hémisphère penche donc tour à tour vers le Soleil. Faites tourner la Terre, changez de latitude, redressez l'axe.</p>
+  </header>
+
+  <section class="stage" aria-label="Simulation">
+    <figure>
+      <canvas id="orbit" aria-label="La Terre sur son orbite autour du Soleil" data-i18n-attr="aria-label:orbitAria"></canvas>
+      <figcaption data-i18n="capOrbit">L'orbite vue de biais. L'axe pointe toujours du même côté. Faites glisser la Terre pour changer de date. Tailles et distances ne sont pas à l'échelle.</figcaption>
+    </figure>
+    <figure>
+      <canvas id="globe" aria-label="La Terre éclairée par le Soleil, vue de côté" data-i18n-attr="aria-label:globeAria"></canvas>
+      <figcaption data-i18n="capGlobe">La Terre vue de côté, Soleil à gauche. Le cercle tracé est votre latitude&nbsp;: sa partie claire est le jour, sa partie sombre la nuit.</figcaption>
+    </figure>
+  </section>
+
+  <section class="datebar" aria-label="Date">
+    <button class="primary" id="play" type="button">▶ Lancer</button>
+    <output id="dateOut" for="date">21 juin</output>
+    <div class="slider">
+      <input type="range" id="date" min="0" max="364" step="1" value="171" aria-label="Jour de l'année" data-i18n-attr="aria-label:dateAria">
+      <div class="months" aria-hidden="true"><span>J</span><span>F</span><span>M</span><span>A</span><span>M</span><span>J</span><span>J</span><span>A</span><span>S</span><span>O</span><span>N</span><span>D</span></div>
+    </div>
+    <div class="chips jumps">
+      <button type="button" data-day="78" data-i18n="jMar">Équinoxe de mars</button>
+      <button type="button" data-day="171" data-i18n="jJun">Solstice de juin</button>
+      <button type="button" data-day="265" data-i18n="jSep">Équinoxe de septembre</button>
+      <button type="button" data-day="354" data-i18n="jDec">Solstice de décembre</button>
+    </div>
+  </section>
+
+  <section class="bench">
+    <div class="controls">
+      <div class="control">
+        <label class="head" for="lat"><span data-i18n="lat">Latitude</span> <span id="latOut" class="val num">45° N</span></label>
+        <input type="range" id="lat" min="-90" max="90" step="0.5" value="45">
+        <div class="place">
+          <label for="place" data-i18n="placeLabel">Choisir une ville ou saisir une latitude</label>
+          <div class="combo">
+            <input type="text" id="place" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="placeList" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="Lima, 48,85 ou 33° 52′ S" data-i18n-attr="placeholder:placePh">
+            <span class="chev" aria-hidden="true"></span>
+            <div class="pop" id="placePop" hidden>
+              <div class="pophead" id="placeHead" role="status" hidden></div>
+              <ul id="placeList" role="listbox" aria-label="Villes" data-i18n-attr="aria-label:cities"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="chips">
+          <button type="button" data-par="np" data-i18n="pN">Pôle Nord</button>
+          <button type="button" data-par="ac" data-i18n="cN">Cercle arctique</button>
+          <button type="button" data-par="tc" data-i18n="tN">Tropique du Cancer</button>
+          <button type="button" data-par="eq" data-i18n="eq">Équateur</button>
+          <button type="button" data-par="tp" data-i18n="tS">Tropique du Capricorne</button>
+          <button type="button" data-par="aa" data-i18n="cS">Cercle antarctique</button>
+          <button type="button" data-par="sp" data-i18n="pS">Pôle Sud</button>
+        </div>
+      </div>
+      <div class="control">
+        <label class="head" for="tilt"><span data-i18n="tilt">Inclinaison de l'axe</span> <span id="tiltOut" class="val num">23,4°</span></label>
+        <input type="range" id="tilt" min="0" max="90" step="0.1" value="23.4">
+        <div class="chips">
+          <button type="button" data-tilt="0" data-i18n="t0">Redresser l'axe (0°)</button>
+          <button type="button" data-tilt="23.4" data-i18n="t23">Terre réelle (23,4°)</button>
+          <button type="button" data-tilt="90" data-i18n="t90">Coucher l'axe (90°)</button>
+        </div>
+      </div>
+      <div class="control">
+        <span class="small" data-i18n="tryit">À essayer</span>
+        <div class="chips">
+          <button type="button" data-city="Tromsø" data-day="171" data-tilt="23.4" data-i18n="x1">Soleil de minuit à Tromsø</button>
+          <button type="button" data-city="Tromsø" data-day="354" data-tilt="23.4" data-i18n="x2">Nuit polaire à Tromsø</button>
+          <button type="button" data-city="Sydney" data-day="358" data-tilt="23.4" data-i18n="x3">Noël à Sydney</button>
+        </div>
+      </div>
+    </div>
+    <div class="measures">
+      <dl>
+        <div><dt data-i18n="dtSeason">Saison</dt><dd id="mSeason">été</dd></div>
+        <div><dt data-i18n="dtDay">Durée du jour</dt><dd id="mDay" class="num">15 h 37</dd></div>
+        <div><dt data-i18n="dtNoon">Soleil à midi</dt><dd id="mNoon" class="num">68,4°</dd></div>
+        <div><dt data-i18n="dtQ">Énergie reçue</dt><dd id="mQ" class="num">480 W/m²</dd></div>
+        <div><dt data-i18n="dtDist">Distance au Soleil</dt><dd id="mDist" class="num">152,0</dd></div>
+      </dl>
+      <p id="story" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="effects">
+    <div class="effect">
+      <h3 data-i18n="h3a">Des rayons plus ou moins inclinés</h3>
+      <svg id="beam" viewBox="0 0 320 180" role="img" aria-label="Un faisceau de lumière qui s'étale sur le sol" data-i18n-attr="aria-label:beamAria"></svg>
+      <p id="beamTxt" class="small"></p>
+    </div>
+    <div class="effect">
+      <h3 data-i18n="h3b">Des jours plus ou moins longs</h3>
+      <div class="daybar" id="daybar" role="img" aria-label="Part de jour et de nuit sur 24 heures" data-i18n-attr="aria-label:daybarAria"></div>
+      <div class="dayticks" id="dayticks" aria-hidden="true"><span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span><span>24 h</span></div>
+      <p id="dayTxt" class="small"></p>
+      <p class="small" data-i18n="pEffects">Plus le Soleil est haut et plus il reste longtemps dans le ciel, plus le sol reçoit d'énergie. Les deux effets viennent de l'inclinaison et vont dans le même sens.</p>
+    </div>
+  </section>
+
+  <section class="chartbox">
+    <h2 data-i18n="h2year">Le bilan sur une année</h2>
+    <p class="small" data-i18n="pChart">Énergie solaire reçue par mètre carré de sol, en W/m², moyenne sur 24 h, au sommet de l'atmosphère. Cliquez ou glissez sur le graphique pour changer de date.</p>
+    <div class="legend" id="legend"></div>
+    <div id="chart"><div id="tip" hidden></div></div>
+    <details>
+      <summary data-i18n="sumTable">Voir les valeurs mois par mois</summary>
+      <div class="tablewrap"><table id="table"></table></div>
+    </details>
+  </section>
+
+  <section class="distance">
+    <h2 data-i18n="h2dist">Et la distance au Soleil&nbsp;?</h2>
+    <p data-i18n="pDist1">Elle ne joue presque aucun rôle. La Terre passe au plus près du Soleil début janvier (147,1 millions de km), en plein hiver de l'hémisphère Nord, et au plus loin début juillet (152,1 millions de km). L'écart n'est que de 3&nbsp;%.</p>
+    <p data-i18n="pDist2">Surtout, la distance est la même pour toute la planète. Si elle expliquait les saisons, il ferait été partout en même temps. Or quand c'est l'été à Paris, c'est l'hiver à Sydney&nbsp;: comparez les deux courbes du graphique.</p>
+  </section>
+
+  <footer data-i18n="foot">Modèle simplifié&nbsp;: orbite elliptique de Kepler, année de 365 jours, heures solaires, ensoleillement calculé sans atmosphère ni nuages. Continents tracés à main levée.</footer>
+  </main>
+</div>
+
+<script>
+/* ---------- le site : deux vues, deux langues ---------- */
+/* L'adresse retient la vue et la langue : #globe, #saisons, #globe-en… Les anciens liens #fr et #en mènent aux saisons.
+   Le français des textes fixes est dans le HTML ; chaque vue ajoute son anglais à Site.EN sous la même clé (data-i18n). */
+var Site=(function(){
+  "use strict";
+  var VIEWS=['globe','jour','saisons'], LS='saisons-lang';
+  var TITLES={globe:['Globe terrestre','Earth Globe'], jour:['Le jour et la nuit','Day and Night'], saisons:['Saisons de la Terre',"Earth's Seasons"]};
+  var S={lang:'fr', view:'globe', EN:{brand:"Earth", navGlobe:"3D Globe", navDay:"Day and night", navSeasons:"Seasons", navAria:"Site sections"}};
+  var langCbs=[], viewCbs=[], statics=[], sattrs=[];
+  function $(id){return document.getElementById(id)}
+  function fromHash(){
+    var parts=(location.hash||'').slice(1).toLowerCase().split('-'), r={};
+    parts.forEach(function(p){
+      if(p==='fr'||p==='en') r.lang=p; else if(VIEWS.indexOf(p)>=0) r.view=p; else if(p==='seasons') r.view='saisons'; else if(p==='day') r.view='jour';
+    });
+    if(r.lang&&!r.view) r.view='saisons';
+    return r;
+  }
+  function prefLang(){
+    try{var s=localStorage.getItem(LS); if(s==='fr'||s==='en') return s;}catch(e){}
+    var prefs=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||'fr'];
+    for(var i=0;i<prefs.length;i++){var c=String(prefs[i]).slice(0,2).toLowerCase(); if(c==='fr'||c==='en') return c;}
+    return 'en';
+  }
+  function writeHash(){var h=S.view+'-'+S.lang; if(location.hash.slice(1)!==h){try{location.hash=h;}catch(e){}}}
+  function render(){
+    var en=S.lang==='en', EN=S.EN;
+    document.documentElement.lang=S.lang;
+    statics.forEach(function(s){s.el.innerHTML=en&&EN[s.key]!==undefined?EN[s.key]:s.fr;});
+    sattrs.forEach(function(s){s.el.setAttribute(s.attr,en&&EN[s.key]!==undefined?EN[s.key]:s.fr);});
+    $('lang-fr').setAttribute('aria-pressed',String(!en)); $('lang-en').setAttribute('aria-pressed',String(en));
+    VIEWS.forEach(function(v){$('view-'+v).hidden=v!==S.view;});
+    $('page').setAttribute('data-view',S.view);
+    document.querySelectorAll('.tabs a').forEach(function(a){
+      if(a.getAttribute('data-view')===S.view) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
+    });
+    document.title=TITLES[S.view][en?1:0];
+  }
+  function fire(list,v){list.forEach(function(fn){fn(v);});}
+  S.onLang=function(fn){langCbs.push(fn);};
+  S.onView=function(fn){viewCbs.push(fn);};
+  S.setLang=function(l,quiet){
+    if(l===S.lang) return;
+    S.lang=l; render(); fire(langCbs,l);
+    if(!quiet){try{localStorage.setItem(LS,l);}catch(e){} writeHash();}
+  };
+  S.go=function(v,quiet){
+    if(v===S.view) return;
+    S.view=v; render(); fire(viewCbs,v);
+    if(!quiet){writeHash(); window.scrollTo(0,0);}
+  };
+  S.start=function(){
+    document.querySelectorAll('[data-i18n]').forEach(function(el){statics.push({el:el,key:el.getAttribute('data-i18n'),fr:el.innerHTML});});
+    document.querySelectorAll('[data-i18n-attr]').forEach(function(el){
+      el.getAttribute('data-i18n-attr').split(';').forEach(function(pair){
+        var p=pair.split(':'); sattrs.push({el:el,attr:p[0],key:p[1],fr:el.getAttribute(p[0])});
+      });
+    });
+    var h=fromHash();
+    S.lang=h.lang||prefLang(); S.view=h.view||'globe';
+    render(); fire(langCbs,S.lang); fire(viewCbs,S.view);
+    window.addEventListener('hashchange',function(){
+      var h=fromHash();
+      if(h.lang) S.setLang(h.lang,true);
+      S.go(h.view||'globe',true);
+    });
+    $('lang-fr').addEventListener('click',function(){S.setLang('fr');});
+    $('lang-en').addEventListener('click',function(){S.setLang('en');});
+    document.addEventListener('click',function(ev){      /* liens internes, y compris ceux réécrits au changement de langue */
+      var a=ev.target.closest&&ev.target.closest('a[data-view]'); if(!a) return;
+      ev.preventDefault(); S.go(a.getAttribute('data-view'));
+    });
+  };
+  return S;
+})();
+</script>
+
+<script>
+/* ---------- vue « Saisons » ---------- */
+(function(){
+"use strict";
+var DEG=Math.PI/180, TAU=2*Math.PI;
+var ECC=0.0167, AU=149.598, S0=1361, PERI_DAY=2.5, LON_PERI=282.95*DEG, YEAR=365.2422;
+var MLEN=[31,28,31,30,31,30,31,31,30,31,30,31], MSTART=[0];
+for(var i=0;i<12;i++) MSTART.push(MSTART[i]+MLEN[i]);
+var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+var state={day:171.5,lat:45,tilt:23.4,playing:false,spin:0.6,place:-1,typed:false};
+var dirty=true, hoverDay=null, lastKey='';
+function $(id){return document.getElementById(id)}
+function clamp(x,a,b){return x<a?a:x>b?b:x}
+function pad(n){return (n<10?'0':'')+n}
+
+/* ---------- langues ---------- */
+/* Le français des textes fixes est dans le HTML ; l'anglais est ici, sous la même clé (data-i18n). */
+var lang='fr', li=0;
+var MONTHS=[['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'],
+            ['January','February','March','April','May','June','July','August','September','October','November','December']];
+var MSHORT=[['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'],
+            ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']];
+var SEASONS=[['printemps','été','automne','hiver'],['spring','summer','autumn','winter']];
+var KEYDATES=[['20 mars','21 juin','23 sept.','21 déc.'],['Mar 20','Jun 21','Sep 23','Dec 21']];
+var KEYNAMES=[['équinoxe','solstice'],['equinox','solstice']];
+var TICKS=[['0 h','6 h','12 h','18 h','24 h'],['0:00','6:00','12:00','18:00','24:00']];
+var EN={
+  h1:"Why do we have seasons?",
+  lede:"Because Earth's axis is <b>tilted by 23.4°</b> and <b>keeps pointing the same way</b> all along the orbit. Each hemisphere leans toward the Sun in turn. Move the Earth, change latitude, straighten the axis.",
+  capOrbit:"The orbit seen at an angle. The axis always points the same way. Drag the Earth to change the date. Sizes and distances are not to scale.",
+  capGlobe:"Earth seen from the side, with the Sun on the left. The circle is your latitude: its bright part is day, its dark part is night.",
+  jMar:"March equinox", jJun:"June solstice", jSep:"September equinox", jDec:"December solstice",
+  lat:"Latitude", placeLabel:"Pick a city or type a latitude",
+  pN:"North Pole", cN:"Arctic Circle", tN:"Tropic of Cancer", eq:"Equator", tS:"Tropic of Capricorn", cS:"Antarctic Circle", pS:"South Pole",
+  tilt:"Axial tilt", t0:"Straighten the axis (0°)", t23:"Real Earth (23.4°)", t90:"Lay the axis flat (90°)",
+  tryit:"Try this", x1:"Midnight sun in Tromsø", x2:"Polar night in Tromsø", x3:"Christmas in Sydney",
+  dtSeason:"Season", dtDay:"Day length", dtNoon:"Sun at noon", dtQ:"Energy received", dtDist:"Distance to the Sun",
+  h3a:"Sunlight at a higher or lower angle", h3b:"Longer or shorter days",
+  pEffects:"The higher the Sun climbs and the longer it stays up, the more energy the ground receives. Both effects come from the tilt and work in the same direction.",
+  h2year:"Adding it up over a year",
+  pChart:"Solar energy received per square metre of ground, in W/m², averaged over 24 hours, at the top of the atmosphere. Click or drag on the chart to change the date.",
+  sumTable:"See the values month by month",
+  h2dist:"What about the distance to the Sun?",
+  pDist1:"It plays almost no part. Earth is closest to the Sun in early January (147.1 million km), in the middle of the northern winter, and farthest in early July (152.1 million km). The difference is only 3%.",
+  pDist2:"Above all, the distance is the same for the whole planet. If it explained the seasons, it would be summer everywhere at once. Yet when it is summer in Paris, it is winter in Sydney: compare the two curves on the chart.",
+  foot:"Simplified model: Keplerian elliptical orbit, 365-day year, solar time, sunlight computed without atmosphere or clouds. Continents drawn freehand.",
+  orbitAria:"Earth on its orbit around the Sun", globeAria:"Earth lit by the Sun, seen from the side", dateAria:"Day of the year",
+  beamAria:"A beam of light spreading over the ground", daybarAria:"Share of day and night over 24 hours",
+  placePh:"Lima, 48.85 or 33° 52′ S", cities:"Cities"
+};
+/* Textes calculés : [français, anglais] */
+var D={
+  play:["▶ Lancer","▶ Play"], pause:["❚❚ Pause","❚❚ Pause"],
+  equator:["équateur","equator"],
+  hemiN:["hémisphère Nord","Northern Hemisphere"], hemiS:["hémisphère Sud","Southern Hemisphere"],
+  noSeason:["aucune <small>l'axe est droit</small>","none <small>the axis is upright</small>"],
+  nightLen:["nuit : {0}","night: {0}"],
+  above:["au-dessus de l'horizon","above the horizon"], below:["sous l'horizon","below the horizon"], onHorizon:["sur l'horizon","on the horizon"],
+  avg24:["moyenne sur 24 h","24-hour average"], mkm:["millions de km","million km"],
+  atLat:["à {0}","at {0}"], atEq:["à l'équateur","at the equator"], atNP:["au pôle Nord","at the North Pole"], atSP:["au pôle Sud","at the South Pole"],
+  stWhere:["Le {0}, {1}, le Soleil ","On {0}, {1}, the Sun "],
+  stPeak:["culmine à {0}°","peaks at {0}°"], stNoRise:["ne se lève pas","does not rise"],
+  stDay:[" et le jour dure {0}"," and the day lasts {0}"], stNoSet:[" et ne se couche pas"," and does not set"],
+  stGraze:["fait le tour de l'horizon sans se lever ni se coucher","circles the horizon without rising or setting"],
+  whyNoTilt:["Sans inclinaison, chaque latitude reçoit la même lumière toute l'année : le jour dure 12 h partout et les saisons disparaissent.",
+             "With no tilt, every latitude gets the same light all year: the day lasts 12 hours everywhere and the seasons disappear."],
+  whyEquinox:["C'est l'équinoxe : l'axe ne penche ni vers le Soleil ni à l'opposé, et le jour dure 12 h sur toute la planète.",
+              "This is an equinox: the axis leans neither toward the Sun nor away from it, and the day lasts 12 hours all over the planet."],
+  whyNorth:["L'hémisphère Nord penche vers le Soleil : les jours y sont plus longs et les rayons y tombent plus droit. C'est {0} au nord, {1} au sud.",
+            "The Northern Hemisphere leans toward the Sun: its days are longer and sunlight strikes it more directly. It is {0} in the north and {1} in the south."],
+  whySouth:["L'hémisphère Sud penche vers le Soleil : les jours y sont plus longs et les rayons y tombent plus droit. C'est {0} au sud, {1} au nord.",
+            "The Southern Hemisphere leans toward the Sun: its days are longer and sunlight strikes it more directly. It is {0} in the south and {1} in the north."],
+  beamSvg:["{0} m² de sol éclairé","{0} m² of ground lit"],
+  beamTxt:["À midi le Soleil est à {0}° au-dessus de l'horizon : 1 m² de rayons s'étale sur {1} m² de sol. Plus la lumière s'étale, moins chaque mètre carré chauffe.",
+           "At noon the Sun is {0}° above the horizon: 1 m² of sunbeam spreads over {1} m² of ground. The more the light spreads, the less each square metre warms up."],
+  beamLowSvg:["Le Soleil rase l'horizon","The Sun skims the horizon"],
+  beamLow:["Le Soleil rase l'horizon : ses rayons glissent sur le sol sans l'éclairer.","The Sun skims the horizon: its rays glide over the ground without lighting it."],
+  beamBelowSvg:["Le Soleil reste sous l'horizon","The Sun stays below the horizon"],
+  beamBelow:["Même à midi, le Soleil ne dépasse pas l'horizon : aucun rayon direct n'atteint le sol.","Even at noon the Sun does not clear the horizon: no direct sunlight reaches the ground."],
+  dayGraze:["Le Soleil fait le tour de l'horizon sans se lever ni se coucher.","The Sun circles the horizon without rising or setting."],
+  dayAll:["Le Soleil ne se couche pas : 24 h de jour.","The Sun does not set: 24 hours of daylight."],
+  dayNone:["Le Soleil ne se lève pas : 24 h de nuit.","The Sun does not rise: 24 hours of night."],
+  dayNormal:["Lever à {0}, coucher à {1} (heure solaire) : {2} de jour.","Sunrise at {0}, sunset at {1} (solar time): {2} of daylight."],
+  chartAria:["Énergie solaire reçue au fil de l'année","Solar energy received through the year"],
+  legYou:["{0} (votre latitude)","{0} (your latitude)"],
+  legOther:["{0} (même latitude, autre hémisphère)","{0} (same latitude, other hemisphere)"],
+  colon:[" : ",": "], thMonth:["Mois (le 15)","Month (15th)"],
+  cDay:["JOUR","DAY"], cNight:["NUIT","NIGHT"], cSun:["Lumière du Soleil","Sunlight"],
+  cbNone:["Aucune ville trouvée. Essayez une latitude, par exemple 12,5 S.","No city found. Try a latitude, for example 12.5 S."],
+  cbRange:["Latitude attendue entre 90° S et 90° N, par exemple 48,85 ou 33° 52′ S.","Enter a latitude between 90° S and 90° N, for example 48.85 or 33° 52′ S."],
+  cbNear:["Villes proches de {0}","Cities near {0}"]
+};
+function t(k){return D[k][li]}
+function tf(k){var s=D[k][li]; for(var a=1;a<arguments.length;a++) s=s.replace('{'+(a-1)+'}',arguments[a]); return s;}
+function nf(x,n){return x.toLocaleString(li?'en-US':'fr-FR',{minimumFractionDigits:n,maximumFractionDigits:n})}
+function dateStr(di){
+  var m=0; while(m<11&&di>=MSTART[m+1]) m++;
+  var d=di-MSTART[m]+1; return li ? MONTHS[1][m]+' '+d : (d===1?'1er':d)+' '+MONTHS[0][m];
+}
+function hmParts(x){var h=Math.floor(x+1e-9), m=Math.round((x-h)*60); if(m>=60){h++;m=0;} if(m<0) m=0; return [h,m];}
+function dur(x){var p=hmParts(x); return p[0]+' h '+pad(p[1])+(li?' min':'');}
+function clock(x){var p=hmParts(x); return li ? p[0]+':'+pad(p[1]) : p[0]+' h '+pad(p[1]);}
+function latStr(lat){
+  var a=Math.abs(lat); if(a<0.005) return '0°';
+  return nf(a, a%1 ? (Math.round(a*100)%10 ? 2 : 1) : 0)+'° '+(lat>0?'N':'S');
+}
+
+/* ---------- astronomie ---------- */
+function sun(day){
+  var M=TAU*(day-PERI_DAY)/YEAR;
+  var nu=M+2*ECC*Math.sin(M)+1.25*ECC*ECC*Math.sin(2*M);
+  var lam=((nu+LON_PERI)%TAU+TAU)%TAU;
+  return {lam:lam, r:(1-ECC*ECC)/(1+ECC*Math.cos(nu))};
+}
+function local(day,lat,tilt){
+  var s=sun(day), d=Math.asin(Math.sin(tilt*DEG)*Math.sin(s.lam)), phi=lat*DEG;
+  var sp=Math.sin(phi)*Math.sin(d), cp=Math.cos(phi)*Math.cos(d), H, graze=false;
+  if(Math.abs(sp)<1e-9&&cp<1e-9){H=Math.PI/2; graze=true;}       /* pôle sans inclinaison : Soleil posé sur l'horizon */
+  else if(sp+cp<=1e-9) H=0; else if(sp-cp>=-1e-9) H=Math.PI; else H=Math.acos(-sp/cp);
+  var q=S0/(Math.PI*s.r*s.r)*(H*sp+cp*Math.sin(H));
+  return {lam:s.lam, r:s.r, decl:d/DEG, hours:24*H/Math.PI, noon:Math.asin(clamp(sp+cp,-1,1))/DEG, q:Math.max(0,q), graze:graze};
+}
+/* Saison de l'hémisphère Nord d'après le calendrier : elle change le 20 mars, le 21 juin, le 23 septembre et le 21 décembre. */
+function seasonIdx(di){return di<78||di>=354 ? 3 : di<171 ? 0 : di<265 ? 1 : 2;}
+var LAMTAB=[]; for(i=0;i<730;i++) LAMTAB.push(sun(i/2).lam);
+function dayFromLam(lam){
+  var best=0,bd=9;
+  for(var i=0;i<730;i++){var d=Math.abs(((LAMTAB[i]-lam+Math.PI)%TAU+TAU)%TAU-Math.PI); if(d<bd){bd=d;best=i;}}
+  return best/2;
+}
+
+/* ---------- villes : [latitude, "nom fr|nom en", "pays fr|pays en"] ---------- */
+var CITIES=[
+[78.2,"Longyearbyen","Svalbard, Norvège|Svalbard, Norway"],[69.6,"Tromsø","Norvège|Norway"],[69.0,"Mourmansk|Murmansk","Russie|Russia"],[64.1,"Reykjavik","Islande|Iceland"],
+[61.2,"Anchorage","Alaska, États-Unis|Alaska, USA"],[60.2,"Helsinki","Finlande|Finland"],[59.9,"Oslo","Norvège|Norway"],[59.3,"Stockholm","Suède|Sweden"],
+[56.0,"Édimbourg|Edinburgh","Royaume-Uni|United Kingdom"],[55.8,"Moscou|Moscow","Russie|Russia"],[55.7,"Copenhague|Copenhagen","Danemark|Denmark"],
+[53.3,"Dublin","Irlande|Ireland"],[52.5,"Berlin","Allemagne|Germany"],[52.4,"Amsterdam","Pays-Bas|Netherlands"],[51.5,"Londres|London","Royaume-Uni|United Kingdom"],
+[50.8,"Bruxelles|Brussels","Belgique|Belgium"],[49.3,"Vancouver","Canada"],[48.9,"Paris","France"],[48.2,"Vienne|Vienna","Autriche|Austria"],
+[47.6,"Seattle","États-Unis|USA"],[46.8,"Québec|Quebec City","Canada"],[46.2,"Genève|Geneva","Suisse|Switzerland"],[45.5,"Montréal|Montreal","Canada"],
+[43.7,"Toronto","Canada"],[43.3,"Marseille","France"],[41.9,"Rome","Italie|Italy"],[41.9,"Chicago","États-Unis|USA"],[41.0,"Istanbul","Turquie|Turkey"],
+[40.7,"New York","États-Unis|USA"],[40.4,"Madrid","Espagne|Spain"],[39.9,"Pékin|Beijing","Chine|China"],[38.7,"Lisbonne|Lisbon","Portugal"],
+[38.0,"Athènes|Athens","Grèce|Greece"],[37.8,"San Francisco","États-Unis|USA"],[37.6,"Séoul|Seoul","Corée du Sud|South Korea"],
+[36.8,"Alger|Algiers","Algérie|Algeria"],[36.8,"Tunis","Tunisie|Tunisia"],[35.7,"Tokyo","Japon|Japan"],[35.7,"Téhéran|Tehran","Iran"],
+[34.1,"Los Angeles","États-Unis|USA"],[33.9,"Beyrouth|Beirut","Liban|Lebanon"],[33.6,"Casablanca","Maroc|Morocco"],[31.2,"Shanghai","Chine|China"],
+[30.0,"Le Caire|Cairo","Égypte|Egypt"],[28.6,"New Delhi","Inde|India"],[25.8,"Miami","États-Unis|USA"],[25.2,"Dubaï|Dubai","Émirats arabes unis|United Arab Emirates"],
+[23.1,"La Havane|Havana","Cuba"],[22.3,"Hong Kong","Chine|China"],[21.3,"Honolulu","Hawaï, États-Unis|Hawaii, USA"],[19.4,"Mexico|Mexico City","Mexique|Mexico"],
+[19.1,"Mumbai","Inde|India"],[18.6,"Port-au-Prince","Haïti|Haiti"],[14.7,"Dakar","Sénégal|Senegal"],[14.6,"Fort-de-France","Martinique"],
+[13.8,"Bangkok","Thaïlande|Thailand"],[12.6,"Bamako","Mali"],[9.0,"Addis-Abeba|Addis Ababa","Éthiopie|Ethiopia"],[6.5,"Lagos","Nigeria"],
+[5.3,"Abidjan","Côte d'Ivoire"],[4.9,"Cayenne","Guyane|French Guiana"],[4.7,"Bogota|Bogotá","Colombie|Colombia"],[1.3,"Singapour|Singapore",""],
+[0.4,"Libreville","Gabon"],[-0.2,"Quito","Équateur|Ecuador"],[-1.3,"Nairobi","Kenya"],[-4.3,"Kinshasa","RD Congo|DR Congo"],[-6.2,"Jakarta","Indonésie|Indonesia"],
+[-12.0,"Lima","Pérou|Peru"],[-16.5,"La Paz","Bolivie|Bolivia"],[-17.5,"Papeete","Polynésie française|French Polynesia"],[-18.9,"Antananarivo","Madagascar"],
+[-20.9,"Saint-Denis","La Réunion|Réunion"],[-22.3,"Nouméa","Nouvelle-Calédonie|New Caledonia"],[-22.9,"Rio de Janeiro","Brésil|Brazil"],
+[-23.5,"São Paulo","Brésil|Brazil"],[-26.2,"Johannesburg","Afrique du Sud|South Africa"],[-32.0,"Perth","Australie|Australia"],
+[-33.4,"Santiago","Chili|Chile"],[-33.9,"Sydney","Australie|Australia"],[-33.9,"Le Cap|Cape Town","Afrique du Sud|South Africa"],
+[-34.6,"Buenos Aires","Argentine|Argentina"],[-36.8,"Auckland","Nouvelle-Zélande|New Zealand"],[-37.8,"Melbourne","Australie|Australia"],
+[-41.3,"Wellington","Nouvelle-Zélande|New Zealand"],[-53.2,"Punta Arenas","Chili|Chile"],[-54.8,"Ushuaia","Argentine|Argentina"],
+[-66.7,"Dumont-d'Urville","Antarctique|Antarctica"],[-77.8,"McMurdo","Antarctique|Antarctica"]
+].map(function(r){
+  var n=r[1].split('|'), c=r[2].split('|'); if(n.length<2) n[1]=n[0]; if(c.length<2) c[1]=c[0];
+  return {lat:r[0], n:n, c:c, k:[fold(n[0]),fold(n[1])], kc:fold(c[0]+' '+c[1])};
+}).sort(function(a,b){return b.lat-a.lat});     /* du nord au sud */
+
+function fold(s){   /* minuscules, sans accents ni ponctuation, pour comparer les noms */
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ø/g,'o').replace(/œ/g,'oe').replace(/æ/g,'ae')
+    .replace(/[-'’.,]/g,' ').replace(/\s+/g,' ').trim();
+}
+function findCity(name){var k=fold(name); for(var i=0;i<CITIES.length;i++) if(CITIES[i].k[0]===k||CITIES[i].k[1]===k) return i; return -1;}
+function searchCities(q){
+  var out=[];
+  CITIES.forEach(function(c,i){
+    var r=-1, a=c.k[0], b=c.k[1];
+    if(a.indexOf(q)===0||b.indexOf(q)===0) r=0;                                    /* début du nom */
+    else if((' '+a).indexOf(' '+q)>=0||(' '+b).indexOf(' '+q)>=0) r=1;             /* début d'un mot du nom */
+    else if((' '+c.kc).indexOf(' '+q)>=0) r=2;                                     /* pays */
+    else if(a.indexOf(q)>=0||b.indexOf(q)>=0) r=3;
+    if(r>=0) out.push([r,i]);
+  });
+  out.sort(function(x,y){return x[0]-y[0]||x[1]-y[1]});
+  return out.map(function(x){return x[1]});
+}
+/* Latitude saisie à la main : 48.85 · 48,85 · -33.9 · 33,9 S · N 45 · 48° 51′ 24″ N · 45 degrés sud */
+function looksNumeric(s){
+  return /^\s*(?:(?:nord|north|sud|south|n|s)\s*)?[+\-−–]?\s*[\d.,]/i.test(s) || /^\s*[+\-−–]\s*$/.test(s);
+}
+function parseLat(str){
+  var s=String(str).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/,/g,'.').replace(/[−–]/g,'-').replace(/[’‘′ʹ]/g,"'").replace(/[″“”]|''/g,'"').replace(/\s+/g,' ').trim();
+  var hemi=0;
+  s=s.replace(/^(nord|north|sud|south|n|s)(?=[\s\d+\-.]|$)\s*/, function(m0,a){hemi=a.charAt(0)==='n'?1:-1; return '';});
+  if(!hemi) s=s.replace(/(^|[^a-z])(nord|north|sud|south|n|s)\.?$/, function(m0,p,a){hemi=a.charAt(0)==='n'?1:-1; return p;});
+  s=s.trim();
+  var m=/^([+-])?\s*(\d+(?:\.\d*)?|\.\d+)\s*(?:°|º|deg(?:res|rees|re|ree)?\.?)?\s*(?:(\d+(?:\.\d*)?)\s*'?\s*(?:(\d+(?:\.\d*)?)\s*"?)?)?$/.exec(s);
+  if(!m||(m[1]&&hemi)) return null;
+  var v=parseFloat(m[2]), mn=m[3]?parseFloat(m[3]):0, sc=m[4]?parseFloat(m[4]):0;
+  if(mn>=60||sc>=60) return null;
+  v+=mn/60+sc/3600;
+  if(!(v<=90)) return null;
+  v=Math.round(v*100)/100*(hemi||(m[1]==='-'?-1:1));
+  return v===0?0:v;
+}
+
+/* ---------- carte des continents (tracé approximatif) ---------- */
+var LAND=[
+"-168,66 -162,70 -141,70 -125,70 -110,68 -95,72 -82,73 -80,68 -88,64 -94,60 -85,55 -80,52 -78,58 -70,61 -64,58 -56,52 -60,47 -66,44 -70,42 -75,38 -76,35 -81,31 -80,26 -82,29 -85,30 -90,29 -94,29 -97,26 -97,21 -95,18 -91,18 -90,21 -87,21 -88,16 -84,15 -83,10 -79,9 -77,8 -80,7 -85,10 -88,13 -94,16 -100,17 -105,20 -106,23 -110,23 -112,28 -114,31 -117,33 -121,35 -124,40 -124,47 -128,51 -134,57 -140,60 -150,60 -158,57 -164,55 -160,59 -165,62",
+"-77,8 -72,12 -62,11 -52,5 -50,0 -44,-2 -37,-5 -35,-8 -39,-15 -41,-22 -48,-26 -53,-33 -58,-38 -65,-42 -68,-50 -69,-54 -74,-52 -75,-45 -73,-38 -71,-30 -70,-18 -76,-14 -81,-5 -80,0 -78,3",
+"-17,15 -16,21 -13,27 -9,31 -6,35 0,36 10,37 11,33 20,32 25,32 32,31 34,28 37,22 39,15 43,12 51,12 48,5 42,-1 39,-6 40,-15 35,-20 35,-24 32,-28 27,-33 20,-35 18,-33 15,-27 12,-17 13,-9 9,-1 9,4 5,6 -4,5 -8,4 -13,8 -17,12",
+"44,-16 49,-12 50,-16 47,-25 44,-23",
+"-9,37 -9,43 -2,44 -1,46 -4,48 2,51 5,53 8,54 8,57 11,56 12,54 18,55 21,55 21,59 28,60 23,60 21,63 25,65 22,66 18,62 17,58 13,56 11,59 6,58 5,62 12,66 16,69 25,71 32,70 41,67 33,66 38,64 44,66 52,68 60,69 68,69 72,73 80,73 90,75 105,77 113,74 130,71 140,73 160,70 170,70 179,69 179,65 172,61 163,58 162,55 156,51 156,57 152,59 142,59 135,54 141,52 138,46 132,43 128,40 129,35 126,34 126,38 122,40 118,39 122,37 119,35 122,31 120,26 116,23 110,21 107,21 106,17 109,13 107,10 105,9 103,11 100,13 99,9 103,2 101,3 98,8 98,15 94,17 92,22 88,22 86,20 80,15 80,11 77,8 73,16 72,21 67,25 60,25 57,26 51,29 48,30 51,25 56,24 59,22 55,17 45,13 43,13 39,21 35,28 35,32 36,36 30,36 27,37 27,40 29,41 36,41 41,41 39,45 37,45 33,45 30,46 28,42 24,40 23,37 21,39 19,42 14,45 12,44 18,40 16,38 12,42 9,44 3,43 0,39 -2,37 -5,36",
+"-5,50 1,51 2,53 -2,56 -2,58 -6,58 -5,54 -3,53 -5,52","-10,52 -6,52 -6,55 -10,54",
+"130,31 132,34 136,34 140,35 142,39 141,41 145,43 141,45 140,41 139,38 136,37 132,35 130,33",
+"95,5 98,4 104,-2 106,-6 102,-5 98,0","109,1 112,3 117,7 119,5 118,1 116,-4 110,-3","105,-7 110,-6 114,-7 114,-9 106,-8",
+"119,-5 120,0 125,1 122,-1 123,-5 121,-3","131,-1 135,-3 141,-3 147,-6 150,-10 145,-8 141,-9 138,-8 133,-4","120,18 122,18 124,13 126,8 124,6 122,10 120,14",
+"114,-22 114,-26 115,-34 119,-34 124,-33 129,-32 134,-33 138,-35 140,-38 146,-39 150,-37 153,-31 153,-25 149,-21 146,-19 145,-15 142,-11 141,-17 136,-15 136,-12 131,-12 129,-15 125,-14 122,-18",
+"145,-41 148,-41 148,-43 146,-44","173,-35 178,-38 175,-41 172,-41 174,-36","172,-41 174,-42 171,-46 167,-46 168,-44","-85,22 -80,23 -74,20 -78,20"];
+var ICE=[
+"-55,82 -30,83 -18,80 -20,72 -28,68 -40,65 -44,60 -50,62 -54,68 -58,75 -68,77 -62,81",
+"-24,65 -14,66 -14,64 -22,63",
+"-80,73 -70,73 -62,67 -65,62 -72,64 -78,65 -74,68","-95,75 -80,76 -62,82 -90,82 -120,77 -115,73 -105,73",
+"-180,-90 -180,-78 -150,-77 -120,-74 -100,-73 -75,-73 -62,-65 -58,-64 -62,-70 -60,-76 -35,-78 -15,-72 0,-70 30,-69 55,-66 80,-67 110,-66 140,-66 165,-70 170,-77 180,-78 180,-90"];
+var MW=1024, MH=512, maskL=new Uint8Array(MW*MH), maskI=new Uint8Array(MW*MH);
+(function(){
+  var c=document.createElement('canvas'); c.width=MW; c.height=MH;
+  var x=c.getContext('2d',{willReadFrequently:true}); x.fillStyle='#000'; x.fillRect(0,0,MW,MH);
+  function fill(list,color){ x.fillStyle=color; list.forEach(function(s){ x.beginPath();
+    s.split(' ').forEach(function(p,k){var a=p.split(','), px=(+a[0]+180)/360*MW, py=(90-a[1])/180*MH; if(k) x.lineTo(px,py); else x.moveTo(px,py);});
+    x.closePath(); x.fill(); }); }
+  fill(LAND,'#f00'); fill(ICE,'#0f0');
+  var d=x.getImageData(0,0,MW,MH).data;
+  for(var i=0;i<MW*MH;i++){maskL[i]=d[i*4];maskI[i]=d[i*4+1];}
+})();
+
+/* ---------- toiles ---------- */
+var orbitC=$('orbit'), globeC=$('globe'), octx=orbitC.getContext('2d'), gctx=globeC.getContext('2d');
+var off=document.createElement('canvas'), offctx=off.getContext('2d'), gImg=null;
+var FONT='"Instrument Sans",system-ui,sans-serif';
+var STARS=[]; (function(){var s=12345; function rnd(){s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff;} for(var i=0;i<90;i++) STARS.push([rnd(),rnd(),0.25+0.6*rnd(),rnd()<0.15?1.4:0.8]);})();
+function fit(c){
+  var dpr=Math.min(window.devicePixelRatio||1,2), w=c.clientWidth, h=c.clientHeight;
+  var pw=Math.round(w*dpr), ph=Math.round(h*dpr);
+  if(c.width!==pw||c.height!==ph){c.width=pw;c.height=ph;}
+  return {W:w,H:h,dpr:dpr};
+}
+function stars(ctx,W,H,shift){
+  for(var i=0;i<STARS.length;i++){var s=STARS[i]; ctx.fillStyle='rgba(220,228,255,'+s[2]+')'; ctx.fillRect(((s[0]+shift)%1)*W,s[1]*H,s[3],s[3]);}
+}
+
+function drawOrbit(){
+  var f=fit(orbitC), W=f.W, H=f.H, ctx=octx; if(!W) return;
+  ctx.setTransform(f.dpr,0,0,f.dpr,0,0); ctx.clearRect(0,0,W,H); stars(ctx,W,H,0);
+  var cx=W/2, cy=H/2, Rx=W*0.36, Ry=Rx*0.45, e=state.tilt*DEG;
+  orbitC._g={cx:cx,cy:cy,Rx:Rx,Ry:Ry};
+  function pos(lam){return {x:cx-Rx*Math.sin(lam), y:cy-Ry*Math.cos(lam), away:Math.cos(lam)};}
+  var ax=Math.sin(e), ay=-0.89*Math.cos(e);
+  // orbite
+  ctx.strokeStyle='rgba(170,185,230,0.45)'; ctx.lineWidth=1; ctx.beginPath(); ctx.ellipse(cx,cy,Rx,Ry,0,0,TAU); ctx.stroke();
+  // mois (mêmes initiales en français et en anglais)
+  ctx.font='500 9px '+FONT; ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(var m=0;m<12;m++){
+    var p=pos(sun(MSTART[m]).lam), dx=(p.x-cx), dy=(p.y-cy);
+    ctx.strokeStyle='rgba(170,185,230,0.6)'; ctx.beginPath(); ctx.moveTo(cx+dx*0.965,cy+dy*0.965); ctx.lineTo(cx+dx*1.035,cy+dy*1.035); ctx.stroke();
+    var pm=pos(sun(MSTART[m]+MLEN[m]/2).lam);
+    ctx.fillStyle='rgba(170,185,230,0.75)'; ctx.fillText('JFMAMJJASOND'[m], cx+(pm.x-cx)*0.84, cy+(pm.y-cy)*0.80);
+  }
+  // repères : solstices et équinoxes, avec l'axe toujours parallèle à lui-même
+  var KEYS=[[0,0,0,-16,-36],[90,1,1,-6,38],[180,2,0,12,32],[270,3,1,6,38]];   /* longitude du Soleil, date, nom, décalage du libellé */
+  KEYS.forEach(function(k){
+    var p=pos(k[0]*DEG);
+    ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(p.x-ax*11,p.y-ay*11); ctx.lineTo(p.x+ax*11,p.y+ay*11); ctx.stroke();
+    ctx.fillStyle='rgba(90,130,210,0.75)'; ctx.beginPath(); ctx.arc(p.x,p.y,4.5,0,TAU); ctx.fill();
+  });
+  // Soleil
+  var rs=Math.max(9,W*0.03), g=ctx.createRadialGradient(cx,cy,0,cx,cy,rs*3.2);
+  g.addColorStop(0,'rgba(255,236,170,1)'); g.addColorStop(0.3,'rgba(255,196,70,0.95)'); g.addColorStop(0.36,'rgba(255,180,50,0.35)'); g.addColorStop(1,'rgba(255,170,40,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,rs*3.2,0,TAU); ctx.fill();
+  // Terre
+  var s=sun(state.day), p=pos(s.lam), re=clamp(W*0.024,7,13)*(1-0.12*p.away), L=re*2.2;
+  ctx.strokeStyle='rgba(255,205,90,0.35)'; ctx.setLineDash([3,4]); ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(p.x,p.y); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle='#fff'; ctx.lineWidth=1.6; ctx.beginPath(); ctx.moveTo(p.x-ax*L,p.y-ay*L); ctx.lineTo(p.x+ax*L,p.y+ay*L); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.arc(p.x,p.y,re,0,TAU); ctx.clip();
+  ctx.fillStyle='#3b82e0'; ctx.fillRect(p.x-re,p.y-re,2*re,2*re);
+  ctx.translate(p.x,p.y); ctx.rotate(Math.atan2(p.y-cy,p.x-cx)); ctx.fillStyle='rgba(6,9,24,0.78)'; ctx.fillRect(0,-re,re,2*re);
+  ctx.restore();
+  ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(p.x,p.y,re,0,TAU); ctx.stroke();
+  ctx.font='600 10px '+FONT; ctx.fillStyle='#fff'; ctx.fillText('N',p.x+ax*(L+8),p.y+ay*(L+8));
+  // libellés des quatre dates, tracés en dernier avec un liseré sombre pour rester lisibles quand la Terre passe dessous
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round'; ctx.lineWidth=3; ctx.strokeStyle='rgba(8,12,27,0.9)';
+  KEYS.forEach(function(k){
+    var p=pos(k[0]*DEG), x=p.x+k[3], y=clamp(p.y+k[4],9,H-21);     /* les deux lignes restent dans le cadre, même sur petit écran */
+    ctx.font='600 11px '+FONT; ctx.strokeText(KEYDATES[li][k[1]],x,y); ctx.fillStyle='rgba(235,240,255,0.95)'; ctx.fillText(KEYDATES[li][k[1]],x,y);
+    ctx.font='400 10px '+FONT; ctx.strokeText(KEYNAMES[li][k[2]],x,y+13); ctx.fillStyle='rgba(170,185,230,0.95)'; ctx.fillText(KEYNAMES[li][k[2]],x,y+13);
+  });
+}
+
+function sst(a,b,x){var t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t);}
+
+/* Rendu du globe. Trois niveaux de calcul pour ne pas refaire la trigonométrie à chaque image :
+   1. par ligne de la carte : couleurs de l'océan et des terres selon la latitude (une fois) ;
+   2. par pixel du disque : position, éclairement, bord (quand la taille change) ;
+   3. par pixel : latitude et longitude vues depuis l'écran (quand la date ou l'inclinaison change).
+   À chaque image il ne reste qu'à décaler la longitude de la rotation et à lire la carte. */
+var ROW_OC=new Float32Array(MH*3), ROW_LD=new Float32Array(MH*3), ROWTAB=new Uint16Array(4097), disc=null;
+(function(){
+  for(var r=0;r<MH;r++){
+    var lat=90-(r+0.5)/MH*180, al=Math.abs(lat), k=1-al/90;
+    var cr=16+6*k, cg=58+26*k, cb=118+30*k;                                   /* océan, plus clair sous les tropiques */
+    if(lat>0){var si=sst(74,84,al); cr+=(232-cr)*si; cg+=(238-cg)*si; cb+=(245-cb)*si;}   /* banquise arctique */
+    ROW_OC[r*3]=cr; ROW_OC[r*3+1]=cg; ROW_OC[r*3+2]=cb;
+    var ar=Math.exp(-((al-24)/10)*((al-24)/10)), cold=sst(52,72,al);          /* déserts vers 24°, toundra au-delà de 52° */
+    var lr=62+116*ar, lg=118+34*ar, lb=58+40*ar;
+    lr+=(205-lr)*cold; lg+=(214-lg)*cold; lb+=(218-lb)*cold;
+    ROW_LD[r*3]=lr; ROW_LD[r*3+1]=lg; ROW_LD[r*3+2]=lb;
+  }
+  for(var i=0;i<=4096;i++) ROWTAB[i]=Math.min(MH-1,((0.5-Math.asin(clamp(i/2048-1,-1,1))/Math.PI)*MH)|0);   /* sin(latitude) -> ligne de la carte */
+})();
+function buildDisc(N){
+  off.width=N; off.height=N; gImg=offctx.createImageData(N,N);
+  var RR=N/2-1, half=N/2, d=gImg.data, K=[], X=[], Y=[], Z=[], LIT=[], NIGHT=[];
+  for(var j=0;j<N;j++){
+    var y=-(j+0.5-half)/RR;
+    for(var i=0;i<N;i++){
+      var x=(i+0.5-half)/RR, rr=x*x+y*y; if(rr>=1) continue;
+      var z=Math.sqrt(1-rr), k=(j*N+i)*4, ill=-x, dayf=sst(-0.06,0.10,ill);      /* le Soleil est à gauche : éclairement = -x */
+      K.push(k); X.push(x); Y.push(y); Z.push(z);
+      LIT.push((0.10+0.90*dayf*(0.62+0.38*Math.sqrt(ill>0?ill:0)))*(0.7+0.3*z)); NIGHT.push(1-dayf);
+      d[k+3]=clamp((1-Math.sqrt(rr))*RR,0,1)*255;
+    }
+  }
+  var M=K.length;
+  disc={N:N, M:M, K:Int32Array.from(K), X:Float32Array.from(X), Y:Float32Array.from(Y), Z:Float32Array.from(Z),
+        LIT:Float32Array.from(LIT), NIGHT:Float32Array.from(NIGHT), ROW:new Uint16Array(M), LON:new Float32Array(M), lam:NaN, e:NaN};
+}
+function orientDisc(a0,a1,a2,b0,b1,b2,c0,c1,c2){
+  var M=disc.M, X=disc.X, Y=disc.Y, Z=disc.Z, ROW=disc.ROW, LON=disc.LON;
+  for(var p=0;p<M;p++){
+    var x=X[p], y=Y[p], z=Z[p];
+    var s=x*a0+y*a1+z*a2; s=s<-1?-1:s>1?1:s;
+    ROW[p]=ROWTAB[((s+1)*2048)|0];
+    /* atan2 approché (erreur < 0,0002 rad, bien moins qu'un pixel de la carte) */
+    var yy=x*c0+y*c1+z*c2, xx=x*b0+y*b1+z*b2, ax=xx<0?-xx:xx, ay=yy<0?-yy:yy;
+    var mx=ax>ay?ax:ay, mn=ax>ay?ay:ax, a=mn/(mx+1e-12), q=a*a;
+    var r=((-0.0464964749*q+0.15931422)*q-0.327622764)*q*a+a;
+    if(ay>ax) r=1.5707963267948966-r;
+    if(xx<0) r=3.141592653589793-r;
+    if(yy<0) r=-r;
+    var u=r/TAU+0.5; LON[p]=u>=1?u-1:u;
+  }
+}
+function shadeDisc(spin){
+  var M=disc.M, K=disc.K, ROW=disc.ROW, LON=disc.LON, LIT=disc.LIT, NIGHT=disc.NIGHT, data=gImg.data, su=spin/TAU;
+  for(var p=0;p<M;p++){
+    var u=LON[p]-su; if(u<0) u+=1;
+    var mxi=(u*MW)|0; if(mxi>=MW) mxi=0;
+    var ro=ROW[p], mi=ro*MW+mxi, r3=ro*3;
+    var r=ROW_OC[r3], g=ROW_OC[r3+1], b=ROW_OC[r3+2], Lf=maskL[mi], If=maskI[mi];
+    if(Lf){Lf/=255; r+=(ROW_LD[r3]-r)*Lf; g+=(ROW_LD[r3+1]-g)*Lf; b+=(ROW_LD[r3+2]-b)*Lf;}
+    if(If){If/=255; r+=(236-r)*If; g+=(242-g)*If; b+=(248-b)*If;}
+    var m=LIT[p], nt=NIGHT[p], k=K[p];
+    data[k]=r*m+2*nt; data[k+1]=g*m+4*nt; data[k+2]=b*m+14*nt;
+  }
+}
+function drawGlobe(){
+  var f=fit(globeC), W=f.W, H=f.H, ctx=gctx; if(!W) return;
+  ctx.setTransform(f.dpr,0,0,f.dpr,0,0); ctx.clearRect(0,0,W,H); stars(ctx,W,H,0.37);
+  var cx=W*0.6, cy=H*0.5, R=Math.min(H*0.33,W*0.3);     /* rayon choisi pour que l'axe et son « N » tiennent dans le cadre */
+  var lam=sun(state.day).lam, e=state.tilt*DEG, sl=Math.sin(lam), cl=Math.cos(lam), se=Math.sin(e), ce=Math.cos(e);
+  // repère terrestre exprimé dans le repère écran (droite, haut, vers l'observateur) ; le Soleil est en -x
+  var E1=[-cl,0,-sl], E2=[-ce*sl,-se,ce*cl], A=[-se*sl,ce,se*cl];
+  // rayons
+  ctx.lineWidth=1.5;
+  [-0.8,-0.4,0,0.4,0.8].forEach(function(d){
+    var y=cy+d*R, x2=cx-Math.sqrt(1-d*d)*R-9, g=ctx.createLinearGradient(0,0,x2,0);
+    g.addColorStop(0,'rgba(255,200,80,0)'); g.addColorStop(1,'rgba(255,205,90,0.9)');
+    ctx.strokeStyle=g; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(x2,y); ctx.stroke();
+    ctx.fillStyle='rgba(255,205,90,0.95)'; ctx.beginPath(); ctx.moveTo(x2+5,y); ctx.lineTo(x2-3,y-4); ctx.lineTo(x2-3,y+4); ctx.fill();
+  });
+  // halo
+  var hg=ctx.createRadialGradient(cx,cy,R*0.96,cx,cy,R*1.12);
+  hg.addColorStop(0,'rgba(110,170,255,0.45)'); hg.addColorStop(1,'rgba(110,170,255,0)');
+  ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(cx,cy,R*1.12,0,TAU); ctx.fill();
+  // globe, pixel par pixel : la géométrie n'est recalculée que si l'axe a bougé, seule la rotation change à chaque image
+  var N=Math.max(64,Math.min(460,Math.round(2*R*f.dpr))), spin=state.spin;
+  var a0=A[0],a1=A[1],a2=A[2],b0=E1[0],b1=E1[1],b2=E1[2],c0=E2[0],c1=E2[1],c2=E2[2];
+  if(!disc||disc.N!==N) buildDisc(N);
+  if(disc.lam!==lam||disc.e!==e){orientDisc(a0,a1,a2,b0,b1,b2,c0,c1,c2); disc.lam=lam; disc.e=e;}
+  shadeDisc(spin);
+  offctx.putImageData(gImg,0,0);
+  ctx.imageSmoothingEnabled=true; ctx.drawImage(off,cx-R,cy-R,2*R,2*R);
+  // parallèles
+  function parallel(phi,lw,cLit,cDark){
+    var sp=Math.sin(phi), cp=Math.cos(phi), n=140, pts=[];
+    for(var q=0;q<=n;q++){var th=q/n*TAU, ct=Math.cos(th)*cp, st=Math.sin(th)*cp;
+      pts.push([sp*a0+ct*b0+st*c0, sp*a1+ct*b1+st*c1, sp*a2+ct*b2+st*c2]);}
+    [0,1].forEach(function(dark){
+      ctx.beginPath();
+      for(var q=0;q<n;q++){var p=pts[q], p2=pts[q+1]; if(p[2]+p2[2]<=0) continue; if(((p[0]+p2[0])>0?1:0)!==dark) continue;
+        ctx.moveTo(cx+R*p[0],cy-R*p[1]); ctx.lineTo(cx+R*p2[0],cy-R*p2[1]);}
+      ctx.strokeStyle=dark?cDark:cLit; ctx.lineWidth=lw; ctx.lineCap='round'; ctx.stroke();
+    });
+  }
+  parallel(0,1,'rgba(255,255,255,0.35)','rgba(255,255,255,0.18)');
+  var phi=state.lat*DEG;
+  parallel(phi,2.6,'#ffd24a','#8ea2ff');
+  // repère qui tourne avec la Terre
+  var sp=Math.sin(phi), cp=Math.cos(phi), ct=Math.cos(spin)*cp, st=Math.sin(spin)*cp;
+  var mx=sp*a0+ct*b0+st*c0, my=sp*a1+ct*b1+st*c1, mz=sp*a2+ct*b2+st*c2;
+  if(mz>0.02){ctx.fillStyle='#fff'; ctx.strokeStyle='#10152a'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx+R*mx,cy-R*my,4.5,0,TAU); ctx.fill(); ctx.stroke();}
+  // axe
+  var pr=Math.hypot(a0,a1);
+  ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=1.6;
+  [1,-1].forEach(function(sg){
+    var facing=sg*a2>=0, t0=facing?1:(pr>1e-3?1/pr:99), t1=1.22;
+    if(t0<t1){ctx.beginPath(); ctx.moveTo(cx+sg*R*a0*t0,cy-sg*R*a1*t0); ctx.lineTo(cx+sg*R*a0*t1,cy-sg*R*a1*t1); ctx.stroke();}
+  });
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  if(pr>0.3){ctx.font='600 12px '+FONT; ctx.fillStyle='#fff'; ctx.fillText('N',cx+R*a0*1.34,cy-R*a1*1.34);}
+  // légendes, au bord inférieur pour rester hors de portée de l'axe
+  ctx.font='600 10px '+FONT; ctx.fillStyle='rgba(255,210,100,0.95)';
+  ctx.fillText(D.cDay[li],cx-R*0.5,H-12); ctx.fillStyle='rgba(160,175,240,0.95)'; ctx.fillText(D.cNight[li],cx+R*0.5,H-12);
+  ctx.textAlign='left'; ctx.fillStyle='rgba(255,210,100,0.95)'; ctx.font='500 11px '+FONT; ctx.fillText(D.cSun[li],10,16);
+}
+
+/* ---------- schéma du faisceau ---------- */
+function drawBeam(h){
+  var gy=140, w=44, cx=165, s='<line class="ground" x1="6" y1="'+gy+'" x2="314" y2="'+gy+'"/>';
+  if(h>0.05){
+    var a=h*DEG, ratio=1/Math.sin(a), Lf=Math.min(300,w*ratio), x1=cx-Lf/2, x2=cx+Lf/2, dx=-260*Math.cos(a), dy=-260*Math.sin(a);
+    var rs=nf(ratio,ratio<100?2:0);
+    s+='<polygon class="beam-ray" points="'+x1+','+gy+' '+x2+','+gy+' '+(x2+dx)+','+(gy+dy)+' '+(x1+dx)+','+(gy+dy)+'"/>';
+    s+='<path class="beam-edge" d="M'+x1+','+gy+' l'+dx+','+dy+' M'+x2+','+gy+' l'+dx+','+dy+'"/>';
+    s+='<line class="beam-foot" x1="'+x1+'" y1="'+gy+'" x2="'+x2+'" y2="'+gy+'" opacity="'+(0.35+0.65*Math.sin(a)).toFixed(2)+'"/>';
+    s+='<text class="svg-t" x="'+cx+'" y="'+(gy+22)+'" text-anchor="middle">'+tf('beamSvg',rs)+'</text>';
+    $('beamTxt').textContent=tf('beamTxt',nf(h,1),rs);
+  } else {
+    var low=h>=-0.05;
+    s+='<text class="svg-t" x="160" y="80" text-anchor="middle">'+t(low?'beamLowSvg':'beamBelowSvg')+'</text>';
+    $('beamTxt').textContent=t(low?'beamLow':'beamBelow');
+  }
+  $('beam').innerHTML=s;
+}
+
+/* ---------- graphique annuel ---------- */
+var chartEl=$('chart'), tip=$('tip'), CM={l:40,r:50,t:10,b:24}, CH=230, svgEl=null, curves={key:''};
+function chartGeom(){var w=chartEl.clientWidth||600; return {w:w,pw:w-CM.l-CM.r};}
+function drawChart(){
+  var G=chartGeom(), w=G.w, lat=state.lat, tilt=state.tilt, two=Math.abs(lat)>=0.25;
+  var pm=S0*1.035*Math.max(Math.sin(tilt*DEG),1/Math.PI), ymax=pm<=600?600:pm<=1000?1000:1500, step=ymax===600?200:ymax===1000?250:500;
+  function X(d){return CM.l+d/365*G.pw} function Y(v){return CH-CM.b-v/ymax*(CH-CM.t-CM.b)}
+  var s='<svg width="'+w+'" height="'+CH+'" viewBox="0 0 '+w+' '+CH+'" role="img" aria-label="'+t('chartAria')+'">';
+  for(var v=0;v<=ymax;v+=step){ s+='<line class="grid" x1="'+CM.l+'" x2="'+(w-CM.r)+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text class="svg-t" x="'+(CM.l-6)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+v+'</text>'; }
+  for(var m=0;m<12;m++){
+    s+='<line class="grid" x1="'+X(MSTART[m])+'" x2="'+X(MSTART[m])+'" y1="'+Y(0)+'" y2="'+(Y(0)+4)+'"/>';
+    s+='<text class="svg-t" x="'+X(MSTART[m]+MLEN[m]/2)+'" y="'+(CH-6)+'" text-anchor="middle">'+(G.pw>520?MSHORT[li][m]:'JFMAMJJASOND'[m])+'</text>';
+  }
+  function path(la){var p=''; for(var d=0;d<=365;d++) p+=(d?'L':'M')+X(d).toFixed(1)+','+Y(local(d,la,tilt).q).toFixed(1); return p;}
+  var ck=w+'|'+lat+'|'+tilt;      /* les courbes ne changent qu'avec la latitude, l'inclinaison ou la largeur */
+  if(ck!==curves.key) curves={key:ck, a:path(lat), b:two?path(-lat):''};
+  if(two) s+='<path class="l2" d="'+curves.b+'"/>';
+  s+='<path class="l1" d="'+curves.a+'"/>';
+  if(hoverDay!==null) s+='<line class="hover" x1="'+X(hoverDay)+'" x2="'+X(hoverDay)+'" y1="'+CM.t+'" y2="'+Y(0)+'"/>';
+  var d=state.day, qa=local(d,lat,tilt).q, qb=local(d,-lat,tilt).q;
+  s+='<line class="rule" x1="'+X(d)+'" x2="'+X(d)+'" y1="'+CM.t+'" y2="'+Y(0)+'"/>';
+  if(two) s+='<circle class="d2" r="5" cx="'+X(d)+'" cy="'+Y(qb)+'"/>';
+  s+='<circle class="d1" r="5" cx="'+X(d)+'" cy="'+Y(qa)+'"/>';
+  var ya=Y(local(365,lat,tilt).q)+4, yb=Y(local(365,-lat,tilt).q)+4;
+  if(two&&Math.abs(ya-yb)<14){var mid=(ya+yb)/2, up=ya<=yb; ya=mid+(up?-7:7); yb=mid+(up?7:-7);}
+  s+='<text class="svg-l" x="'+(w-CM.r+6)+'" y="'+ya+'">'+latStr(lat)+'</text>';
+  if(two) s+='<text class="svg-l" x="'+(w-CM.r+6)+'" y="'+yb+'">'+latStr(-lat)+'</text>';
+  s+='</svg>';
+  if(svgEl) svgEl.remove();
+  chartEl.insertAdjacentHTML('afterbegin',s); svgEl=chartEl.firstElementChild;
+  var nameA=state.place>=0 ? cityLabel(state.place)+' ('+latStr(lat)+')' : tf('legYou',latStr(lat));
+  $('legend').innerHTML='<span><i style="background:var(--s1)"></i>'+nameA+'</span>'+(two?'<span><i style="background:var(--s2)"></i>'+tf('legOther',latStr(-lat))+'</span>':'');
+  if(hoverDay!==null){
+    var hx=X(hoverDay);
+    tip.innerHTML='<b>'+dateStr(Math.floor(hoverDay))+'</b><span><i style="background:var(--s1)"></i>'+latStr(lat)+t('colon')+Math.round(local(hoverDay,lat,tilt).q)+' W/m²</span>'+(two?'<br><span><i style="background:var(--s2)"></i>'+latStr(-lat)+t('colon')+Math.round(local(hoverDay,-lat,tilt).q)+' W/m²</span>':'');
+    tip.hidden=false; tip.style.left=hx+'px'; tip.style.transform=hx>w*0.6?'translateX(calc(-100% - 12px))':'translateX(12px)';
+  } else tip.hidden=true;
+}
+function drawTable(){
+  var lat=state.lat, tilt=state.tilt, two=Math.abs(lat)>=0.25;
+  var s='<thead><tr><th>'+t('thMonth')+'</th><th>'+latStr(lat)+'</th>'+(two?'<th>'+latStr(-lat)+'</th>':'')+'</tr></thead><tbody>';
+  for(var m=0;m<12;m++){var d=MSTART[m]+14.5; s+='<tr><td>'+MONTHS[li][m]+'</td><td>'+Math.round(local(d,lat,tilt).q)+' W/m²</td>'+(two?'<td>'+Math.round(local(d,-lat,tilt).q)+' W/m²</td>':'')+'</tr>';}
+  $('table').innerHTML=s+'</tbody>';
+}
+function chartDay(ev){var r=chartEl.getBoundingClientRect(), G=chartGeom(); return clamp((ev.clientX-r.left-CM.l)/G.pw*365,0,364.99);}
+var chartDrag=false;
+chartEl.addEventListener('pointerdown',function(ev){chartDrag=true; try{chartEl.setPointerCapture(ev.pointerId);}catch(e){} stop(); state.day=hoverDay=chartDay(ev); dirty=true;});
+chartEl.addEventListener('pointermove',function(ev){hoverDay=chartDay(ev); if(chartDrag) state.day=hoverDay; dirty=true;});
+function endChart(){chartDrag=false; hoverDay=null; dirty=true;}
+chartEl.addEventListener('pointerup',function(ev){chartDrag=false; if(ev.pointerType!=='mouse') endChart();});
+chartEl.addEventListener('pointercancel',endChart); chartEl.addEventListener('pointerleave',endChart);
+
+/* ---------- champ « ville ou latitude » ---------- */
+var placeIn=$('place'), popEl=$('placePop'), listEl=$('placeList'), headEl=$('placeHead');
+var combo={open:false, items:[], active:-1, start:0, pristine:true, prev:null};
+function cityLabel(i){return CITIES[i].n[li]}
+function committedText(){return state.place>=0 ? cityLabel(state.place) : state.typed ? latStr(state.lat) : '';}
+function snapshot(){return {lat:state.lat, place:state.place, typed:state.typed};}
+function nearestCity(lat){var best=0, bd=1e9; CITIES.forEach(function(c,i){var d=Math.abs(c.lat-lat); if(d<bd){bd=d;best=i;}}); return best;}
+function renderList(){
+  var txt=placeIn.value.trim(), items, head='', active=-1, all=CITIES.map(function(c,i){return i});
+  if(combo.pristine||!txt) items=all;
+  else if(looksNumeric(txt)){
+    var v=parseLat(txt);
+    if(v===null){items=[]; head=t('cbRange');}
+    else{
+      items=all.sort(function(a,b){return Math.abs(CITIES[a].lat-v)-Math.abs(CITIES[b].lat-v)||a-b}).slice(0,6).sort(function(a,b){return a-b});
+      head=tf('cbNear',latStr(v));
+    }
+  } else {
+    items=searchCities(fold(txt));
+    if(items.length) active=0; else head=t('cbNone');
+  }
+  combo.items=items; combo.active=active;
+  var h='';
+  for(var q=0;q<items.length;q++){
+    var i=items[q], c=CITIES[i];
+    h+='<li role="option" id="po-'+i+'" data-i="'+i+'" aria-selected="'+(q===active)+'" class="'+(q===active?'act ':'')+(i===state.place?'cur':'')+'">'
+      +'<span class="n">'+c.n[li]+(c.c[li]?' <span class="c">'+c.c[li]+'</span>':'')+'</span><span class="l">'+latStr(c.lat)+'</span></li>';
+  }
+  listEl.innerHTML=h; listEl.hidden=!items.length;
+  headEl.textContent=head; headEl.hidden=!head;
+  if(active>=0) placeIn.setAttribute('aria-activedescendant','po-'+items[active]); else placeIn.removeAttribute('aria-activedescendant');
+}
+function reveal(el){
+  var top=el.offsetTop, bot=top+el.offsetHeight;
+  if(top<listEl.scrollTop) listEl.scrollTop=top; else if(bot>listEl.scrollTop+listEl.clientHeight) listEl.scrollTop=bot-listEl.clientHeight;
+}
+function setActive(q){
+  var old=listEl.querySelector('.act'); if(old){old.classList.remove('act'); old.setAttribute('aria-selected','false');}
+  combo.active=q;
+  var el=listEl.children[q]; if(!el){placeIn.removeAttribute('aria-activedescendant'); return;}
+  el.classList.add('act'); el.setAttribute('aria-selected','true'); placeIn.setAttribute('aria-activedescendant',el.id); reveal(el);
+}
+function openList(){
+  if(!combo.open){combo.open=true; popEl.hidden=false; placeIn.setAttribute('aria-expanded','true');}
+  renderList();
+  if(combo.pristine){   /* liste entière, centrée sur la ville choisie ou sur la plus proche en latitude */
+    combo.start=state.place>=0?state.place:nearestCity(state.lat);
+    var el=$('po-'+combo.start); if(el) listEl.scrollTop=el.offsetTop-(listEl.clientHeight-el.offsetHeight)/2;
+  }
+}
+function closeList(){combo.open=false; popEl.hidden=true; placeIn.setAttribute('aria-expanded','false'); placeIn.removeAttribute('aria-activedescendant');}
+function setPlace(lat,place,typed){state.lat=lat; state.place=place; state.typed=typed; dirty=true;}
+function choose(i){
+  setPlace(CITIES[i].lat,i,false);
+  placeIn.value=cityLabel(i); placeIn.removeAttribute('aria-invalid'); combo.prev=snapshot(); combo.pristine=true; closeList();
+}
+function commitText(){   /* vrai si le texte du champ a été compris */
+  var txt=placeIn.value.trim();
+  if(txt===committedText()) return true;
+  if(!txt){setPlace(state.lat,-1,false); return true;}
+  if(looksNumeric(txt)){
+    var v=parseLat(txt); if(v===null) return false;
+    setPlace(v,-1,true); placeIn.value=latStr(v); return true;
+  }
+  var i=findCity(txt); if(i<0) return false;
+  choose(i); return true;
+}
+var coarse=window.matchMedia&&matchMedia('(pointer: coarse)').matches;   /* écran tactile : on referme le clavier après validation */
+placeIn.addEventListener('focus',function(){   /* au clavier la liste ne s'ouvre qu'à la frappe ou avec les flèches */
+  combo.prev=snapshot(); combo.pristine=true;
+  setTimeout(function(){ if(document.activeElement===placeIn) placeIn.select(); },0);
+});
+placeIn.addEventListener('click',function(){ if(!combo.open) openList(); });
+placeIn.addEventListener('input',function(){
+  combo.pristine=false; placeIn.removeAttribute('aria-invalid');
+  var txt=placeIn.value.trim();
+  if(looksNumeric(txt)){ var v=parseLat(txt); if(v!==null) setPlace(v,-1,true); }   /* la latitude s'applique pendant la frappe */
+  openList();
+});
+placeIn.addEventListener('keydown',function(ev){
+  var k=ev.key, n=combo.items.length;
+  if(k==='ArrowDown'||k==='ArrowUp'){
+    ev.preventDefault();
+    if(!combo.open){openList(); return;}
+    if(!n) return;
+    var q=combo.active;
+    if(q<0) q=combo.pristine?combo.items.indexOf(combo.start):(k==='ArrowDown'?0:n-1);
+    else q=k==='ArrowDown'?(q+1)%n:(q+n-1)%n;
+    setActive(q<0?0:q);
+  } else if(k==='Enter'){
+    ev.preventDefault();
+    if(combo.open&&combo.active>=0){choose(combo.items[combo.active]); if(coarse) placeIn.blur(); return;}
+    if(commitText()){combo.prev=snapshot(); combo.pristine=true; closeList(); if(coarse) placeIn.blur();}
+    else{placeIn.setAttribute('aria-invalid','true'); if(!combo.open) openList();}
+  } else if(k==='Escape'){
+    if(combo.open||placeIn.value!==committedText()){
+      ev.preventDefault();
+      var p=combo.prev; if(p) setPlace(p.lat,p.place,p.typed);
+      placeIn.value=committedText(); placeIn.removeAttribute('aria-invalid'); closeList(); placeIn.select();
+    }
+  }
+});
+placeIn.addEventListener('blur',function(){
+  commitText();                                   /* texte non compris : on revient à la valeur courante */
+  placeIn.value=committedText(); placeIn.removeAttribute('aria-invalid'); closeList();
+});
+popEl.addEventListener('mousedown',function(ev){ev.preventDefault();});   /* garde le curseur dans le champ pendant le clic */
+listEl.addEventListener('click',function(ev){
+  var el=ev.target.closest('li'); if(!el) return;
+  choose(+el.getAttribute('data-i')); placeIn.blur();
+});
+
+/* ---------- mise à jour des textes ---------- */
+var dateIn=$('date'), latIn=$('lat'), tiltIn=$('tilt');
+function whereStr(){
+  var lat=state.lat, ls=latStr(lat);
+  if(state.place>=0){
+    var n=cityLabel(state.place);
+    if(li) return 'in '+n+' ('+ls+')';
+    var m=/^Le (.+)$/.exec(n); return (m?'au '+m[1]:'à '+n)+' ('+ls+')';
+  }
+  if(lat===90) return t('atNP'); if(lat===-90) return t('atSP'); if(Math.abs(lat)<0.005) return t('atEq');
+  return tf('atLat',ls);
+}
+function article(s){return li ? s : (/^[aeéh]/.test(s)?"l'"+s:'le '+s);}
+function update(){
+  var d=state.day, di=Math.floor(d)%365, lat=state.lat, tilt=state.tilt, L=local(d,lat,tilt);
+  var ds=dateStr(di), ls=latStr(lat), ts=nf(tilt,1)+'°';
+  $('dateOut').textContent=ds; dateIn.value=di; dateIn.setAttribute('aria-valuetext',ds);
+  $('latOut').textContent=ls+(Math.abs(lat)<0.005?' ('+t('equator')+')':''); latIn.value=lat; latIn.setAttribute('aria-valuetext',ls);
+  $('tiltOut').textContent=ts; tiltIn.value=tilt; tiltIn.setAttribute('aria-valuetext',ts);
+  if(document.activeElement!==placeIn) placeIn.value=committedText();
+  var q=seasonIdx(di), north=lat>=0, sN=SEASONS[li][q], sS=SEASONS[li][(q+2)%4], flat=tilt<0.05;
+  $('mSeason').innerHTML=flat ? t('noSeason') : (north?sN:sS)+' <small>'+t(north?'hemiN':'hemiS')+'</small>';
+  $('mDay').innerHTML=L.graze ? '— <small>'+t('onHorizon')+'</small>' : dur(L.hours)+' <small>'+tf('nightLen',dur(24-L.hours))+'</small>';
+  $('mNoon').innerHTML=(L.graze||Math.abs(L.noon)<0.05) ? '0° <small>'+t('onHorizon')+'</small>'
+    : L.noon>0 ? nf(L.noon,1)+'° <small>'+t('above')+'</small>' : nf(-L.noon,1)+'° <small>'+t('below')+'</small>';
+  $('mQ').innerHTML=Math.round(L.q)+' W/m² <small>'+t('avg24')+'</small>';
+  $('mDist').innerHTML=nf(L.r*AU,1)+' <small>'+t('mkm')+'</small>';
+  var sunPart=L.graze ? t('stGraze') : L.noon>0 ? tf('stPeak',nf(L.noon,1)) : t('stNoRise');
+  var dayPart=L.graze ? '' : (L.hours>0&&L.hours<24) ? tf('stDay',dur(L.hours)) : L.hours>=24 ? t('stNoSet') : '';
+  var why;
+  if(flat) why=t('whyNoTilt');
+  else if(Math.abs(Math.sin(L.lam))<0.035) why=t('whyEquinox');
+  else if(L.decl>0) why=tf('whyNorth',article(sN),article(sS));
+  else why=tf('whySouth',article(sS),article(sN));
+  $('story').textContent=tf('stWhere',ds,whereStr())+sunPart+dayPart+'. '+why;
+  drawBeam(L.graze?0:L.noon);
+  var bar=$('daybar');
+  if(L.graze){bar.style.background='var(--line)'; $('dayTxt').textContent=t('dayGraze');}
+  else{
+    var a=(12-L.hours/2)/24*100, b=(12+L.hours/2)/24*100;
+    bar.style.background='linear-gradient(to right,var(--night-fill) 0 '+a+'%,var(--sun-fill) '+a+'% '+b+'%,var(--night-fill) '+b+'% 100%)';
+    $('dayTxt').textContent=L.hours>=24 ? t('dayAll') : L.hours<=0 ? t('dayNone') : tf('dayNormal',clock(12-L.hours/2),clock(12+L.hours/2),dur(L.hours));
+  }
+  drawChart();
+  var key=lang+'|'+lat+'|'+tilt; if(key!==lastKey){lastKey=key; drawTable();}
+}
+
+/* ---------- commandes ---------- */
+var playBtn=$('play');
+function stop(){state.playing=false; playBtn.textContent=t('play');}
+playBtn.addEventListener('click',function(){state.playing=!state.playing; playBtn.textContent=t(state.playing?'pause':'play');});
+dateIn.addEventListener('input',function(){stop(); state.day=+this.value+0.5; dirty=true;});
+latIn.addEventListener('input',function(){setPlace(+this.value,-1,false);});
+tiltIn.addEventListener('input',function(){state.tilt=+this.value; dirty=true;});
+document.querySelectorAll('button[data-day],button[data-par],button[data-tilt],button[data-city]').forEach(function(b){
+  b.addEventListener('click',function(){
+    var tl=b.getAttribute('data-tilt'), dy=b.getAttribute('data-day'), par=b.getAttribute('data-par'), city=b.getAttribute('data-city');
+    if(tl!==null) state.tilt=+tl;
+    if(dy!==null){stop(); state.day=+dy+0.5;}
+    if(par!==null){   /* tropiques et cercles polaires suivent l'inclinaison choisie */
+      var e=state.tilt, v={np:90,ac:90-e,tc:e,eq:0,tp:-e,aa:e-90,sp:-90}[par];
+      setPlace(Math.round(v*10)/10+0,-1,false);
+    }
+    if(city!==null){var ci=findCity(city); if(ci>=0) setPlace(CITIES[ci].lat,ci,false);}
+    dirty=true;
+  });
+});
+var orbitDrag=false;
+function orbitSet(ev){
+  var r=orbitC.getBoundingClientRect(), g=orbitC._g; if(!g) return;
+  var sx=(ev.clientX-r.left-g.cx)/g.Rx, away=(g.cy-(ev.clientY-r.top))/g.Ry;
+  if(sx*sx+away*away<0.04) return;
+  state.day=dayFromLam(((Math.atan2(-sx,away))%TAU+TAU)%TAU); dirty=true;
+}
+orbitC.addEventListener('pointerdown',function(ev){orbitDrag=true; try{orbitC.setPointerCapture(ev.pointerId);}catch(e){} stop(); orbitSet(ev); orbitC.style.cursor='grabbing';});
+orbitC.addEventListener('pointermove',function(ev){if(orbitDrag) orbitSet(ev);});
+function endOrbit(){orbitDrag=false; orbitC.style.cursor='';}
+orbitC.addEventListener('pointerup',endOrbit); orbitC.addEventListener('pointercancel',endOrbit);
+window.addEventListener('resize',function(){dirty=true;});
+
+/* ---------- langue et vue : décidées par le site ---------- */
+for(var ek in EN) Site.EN[ek]=EN[ek];
+Site.onLang(function(l){
+  lang=l; li=l==='en'?1:0;
+  $('dayticks').innerHTML=TICKS[li].map(function(s){return '<span>'+s+'</span>'}).join('');
+  playBtn.textContent=t(state.playing?'pause':'play');
+  if(combo.open) renderList();
+  dirty=true;
+});
+Site.onView(function(){dirty=true;});     /* les toiles n'ont pas de taille tant que la vue est cachée */
+
+/* ---------- boucle ---------- */
+var last=performance.now();
+function frame(now){
+  var dt=Math.min(0.1,(now-last)/1000); last=now;
+  if(Site.view!=='saisons'){requestAnimationFrame(frame); return;}
+  if(!reduce) state.spin=(state.spin+dt*0.5)%TAU;
+  if(state.playing){state.day=(state.day+dt*15)%365; dirty=true;}
+  if(dirty){dirty=false; update();}
+  drawOrbit(); drawGlobe();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+<script src="globe.js"></script>
+<script>Site.start();</script>
