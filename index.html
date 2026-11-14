@@ -203,8 +203,8 @@ footer{font-size:.8rem;color:var(--ink-2)}
 
 /* ---------- leçon « Jour et nuit » : le globe à gauche, les étapes à droite ---------- */
 .jgrid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:28px;align-items:start}
-#jStage,#fStage{position:sticky;top:max(12px,env(safe-area-inset-top,0px));min-width:0}
-#jStage .gstage,#fStage .gstage{height:clamp(400px,calc(100vh - 120px),700px)}
+#jStage,#fStage,#pStage{position:sticky;top:max(12px,env(safe-area-inset-top,0px));min-width:0}
+#jStage .gstage,#fStage .gstage,#pStage .gstage{height:clamp(400px,calc(100vh - 120px),700px)}
 .jside{display:flex;flex-direction:column;gap:18px;min-width:0}
 .jclock{display:flex;flex-direction:column;gap:8px;padding-bottom:18px;border-bottom:1px solid var(--line)}
 .jclock .now{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -217,7 +217,7 @@ footer{font-size:.8rem;color:var(--ink-2)}
 .jsteps .combo input{font-size:.95rem}
 .jclock .row .val{color:var(--ink-2);font-variant-numeric:tabular-nums;min-width:8.5em;text-align:right}
 .jclock .row button{padding:3px 10px;font-size:.8rem}
-#view-jour p,#view-jour .jmyths ul,#view-fuseaux p,#view-fuseaux .jmyths ul{max-width:none}
+#view-jour p,#view-jour .jmyths ul,#view-fuseaux p,#view-fuseaux .jmyths ul,#view-population p,#view-population .jmyths ul{max-width:none}
 #jLive,#fLive{font-size:1.02rem;min-height:3em}
 #fLive i{display:inline-block;width:.8em;height:.8em;border-radius:2px;margin-right:.35em;vertical-align:baseline}
 .fpair{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 12px}
@@ -240,6 +240,41 @@ footer{font-size:.8rem;color:var(--ink-2)}
 .jmyths b{font-weight:600}
 a.inline{color:inherit;text-underline-offset:3px}
 
+/* ---------- vue « Population » : pays coloriés, année, trajectoire d'un pays ---------- */
+.pind{display:flex;flex-wrap:wrap;gap:6px}
+.pind button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+#pKind{font-size:.875rem;color:var(--ink-2)}
+.plegend{display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--ink-2)}
+.plegend .bar{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px}
+.plegend .bar i{display:block;height:12px;border-radius:2px}
+.plegend .ticks{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;font-variant-numeric:tabular-nums}
+.plegend .ticks span{text-align:right;transform:translateX(50%);white-space:nowrap}
+.plegend .ticks span:last-child{visibility:hidden}
+.plegend .nd{display:flex;align-items:center;gap:6px}
+.plegend .nd i{display:inline-block;width:12px;height:12px;border-radius:2px;background:#4a4e5a}
+#pWorld{font-size:.95rem}
+.pcard{display:flex;flex-direction:column;gap:10px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.pcard select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+.pcard select:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+#pLive{font-size:1.02rem;min-height:3em}
+#pLive b{font-weight:700}
+#pChart svg{display:block;width:100%;height:auto;touch-action:pan-y;cursor:crosshair}
+#pChart text{font:11px var(--body);fill:var(--ink-2);font-variant-numeric:tabular-nums}
+#pChart .grid{stroke:var(--line);stroke-width:1}
+#pChart .band{fill:var(--s2);opacity:.22}
+#pChart .obs,#pChart .proj{fill:none;stroke:var(--s2);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+#pChart .proj{stroke-dasharray:5 4}
+#pChart .cut{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:2 3}
+#pChart .yr{stroke:var(--ink);stroke-width:1}
+#pChart .dot{fill:var(--s2);stroke:var(--bg);stroke-width:2}
+#pChart .hov{stroke:var(--ink-2);stroke-width:1}
+#pHover{min-height:1.4em;font-variant-numeric:tabular-nums}
+.pkey{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.8rem;color:var(--ink-2)}
+.pkey span{display:inline-flex;align-items:center;gap:6px}
+.pkey i{display:inline-block;width:18px;height:0;border-top:2px solid var(--s2)}
+.pkey i.d{border-top-style:dashed}
+.pkey i.b{height:10px;border:0;background:var(--s2);opacity:.22}
+
 @media (max-width:600px){            /* téléphone : les onglets passent sous le nom du site */
   .site .langs{margin-left:auto}
   .tabs{order:3;flex:1 0 100%;flex-wrap:wrap}
@@ -247,8 +282,8 @@ a.inline{color:inherit;text-underline-offset:3px}
 }
 @media (max-width:900px){
   .jgrid{grid-template-columns:1fr}
-  #jStage,#fStage{position:static}
-  #jStage .gstage,#fStage .gstage{height:clamp(360px,58vh,560px)}
+  #jStage,#fStage,#pStage{position:static}
+  #jStage .gstage,#fStage .gstage,#pStage .gstage{height:clamp(360px,58vh,560px)}
 }
 @media (max-width:760px){
   .gstage{height:clamp(420px,calc(100vh - 190px),720px)}
@@ -271,6 +306,7 @@ a.inline{color:inherit;text-underline-offset:3px}
       <a href="#globe" data-view="globe" aria-current="page" data-i18n="navGlobe">Globe 3D</a>
       <a href="#jour" data-view="jour" data-i18n="navDay">Jour et nuit</a>
       <a href="#fuseaux" data-view="fuseaux" data-i18n="navTz">Fuseaux horaires</a>
+      <a href="#population" data-view="population" data-i18n="navPop">Population</a>
       <a href="#saisons" data-view="saisons" data-i18n="navSeasons">Saisons</a>
     </div>
     <div class="langs" role="group" aria-label="Langue / Language">
@@ -562,6 +598,81 @@ a.inline{color:inherit;text-underline-offset:3px}
     <footer data-i18n="fFoot">Limites des fuseaux&nbsp;: timezone-boundary-builder, d'après les contributeurs d'OpenStreetMap (licence ODbL), version 2026. Heures légales normales, sans heure d'été. Pour la Chine, c'est l'heure officielle unique (UTC+8) qui est retenue.</footer>
   </main>
 
+  <main class="view" id="view-population" hidden>
+    <header>
+      <h1 data-i18n="pH1">La population</h1>
+      <p class="lede" data-i18n="pLede">Combien sommes-nous sur Terre, où, et pour combien de temps encore la population va-t-elle augmenter&nbsp;? Le globe colorie chaque pays de 1950 à 2050. Après aujourd'hui, ce sont des <b>projections</b>&nbsp;: elles viennent avec une fourchette.</p>
+    </header>
+
+    <div class="jgrid">
+      <div id="pStage"></div>
+      <div class="jside">
+        <div class="jclock">
+          <div class="pind" id="pInd" role="group" aria-label="Indicateur" data-i18n-attr="aria-label:pIndAria">
+            <button type="button" data-ind="pop" aria-pressed="true" data-i18n="pIndPop">Population</button>
+            <button type="button" data-ind="growth" aria-pressed="false" data-i18n="pIndGrowth">Croissance</button>
+            <button type="button" data-ind="gdp" aria-pressed="false" data-i18n="pIndGdp">PIB par habitant</button>
+          </div>
+          <div class="now">
+            <button class="primary" id="pPlay" type="button">▶ Lancer</button>
+            <output id="pYear"></output>
+            <span id="pKind"></span>
+          </div>
+          <div class="row">
+            <label for="pSlider" data-i18n="pYearL">Année</label>
+            <input type="range" id="pSlider" min="1950" max="2050" step="1" value="2026">
+            <button type="button" id="pNow" data-i18n="pNow">Aujourd'hui</button>
+          </div>
+          <div class="plegend" id="pLegend"></div>
+          <p id="pWorld"></p>
+        </div>
+        <div class="pcard">
+          <div class="place">
+            <label for="pCountry" data-i18n="pCountryL">Pays (ou cliquez sur le globe)</label>
+            <select id="pCountry"></select>
+          </div>
+          <p id="pLive" aria-live="polite"></p>
+          <div id="pChart"></div>
+          <div class="pkey" id="pKey"></div>
+          <p class="small" id="pHover"></p>
+        </div>
+        <ol class="jsteps" id="pSteps">
+          <li data-step="0">
+            <h3 data-i18n="p1h">De 2,5 à plus de 8 milliards</h3>
+            <p data-i18n="p1p">En 1950, la Terre comptait 2,5 milliards d'habitants. Elle en compte plus de 8 milliards aujourd'hui&nbsp;: la population a plus que triplé en une vie humaine. L'animation repart de 1950&nbsp;; regardez l'Asie, puis l'Afrique, changer de couleur.</p>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+          <li data-step="1">
+            <h3 data-i18n="p2h">Une croissance très inégale</h3>
+            <p data-i18n="p2p">La population n'augmente pas partout au même rythme. Dans une grande partie de l'Afrique, elle croît de plus de 2&nbsp;% par an&nbsp;: à ce rythme, elle double en 35 ans. Ailleurs, elle diminue déjà&nbsp;: au Japon, en Chine, dans une partie de l'Europe. La carte montre la variation d'une année à la suivante.</p>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+          <li data-step="2">
+            <h3 data-i18n="p3h">Demain&nbsp;: une fourchette, pas un chiffre</h3>
+            <p data-i18n="p3p">Personne ne connaît la population de 2050. Elle dépend des naissances, des décès et des migrations des années à venir. Les projections des Nations unies se sont déjà trompées par le passé, et ces erreurs servent ici à tracer une fourchette&nbsp;: la vraie valeur a 8 chances sur 10 d'y tomber. Plus on regarde loin, plus elle s'élargit. Exemple&nbsp;: le Nigeria.</p>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+          <li data-step="3">
+            <h3 data-i18n="p4h">Le niveau de vie&nbsp;: le PIB par habitant</h3>
+            <p data-i18n="p4p">Le produit intérieur brut (PIB) est la valeur de tout ce qu'un pays produit en un an. Divisé par le nombre d'habitants, il donne une idée du niveau de vie moyen. Il est exprimé ici en parité de pouvoir d'achat&nbsp;: les montants sont corrigés des écarts de prix entre pays, pour comparer ce que l'on peut réellement acheter. C'est une moyenne&nbsp;: elle ne dit rien du partage des richesses.</p>
+            <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <section class="jmyths">
+      <h2 data-i18n="fMh">À retenir</h2>
+      <ul>
+        <li data-i18n="pM1"><b>La population mondiale augmente encore, mais de moins en moins vite.</b> Son rythme de croissance baisse depuis les années 1960.</li>
+        <li data-i18n="pM2"><b>Une projection n'est pas une prévision certaine.</b> Elle prolonge des tendances&nbsp;; sa fourchette dit à quel point on peut s'y fier.</li>
+        <li data-i18n="pM3"><b>Un grand pays n'est pas forcément un pays riche.</b> La population et le PIB par habitant dessinent deux cartes très différentes.</li>
+      </ul>
+    </section>
+
+    <footer><span data-i18n="pFoot">Population&nbsp;: Nations unies, World Population Prospects 2024 (variante médiane, au 1<sup>er</sup> juillet). PIB par habitant&nbsp;: Banque mondiale, puis prévisions du FMI et scénario de long terme de l'OCDE, en dollars internationaux constants de 2021. Fourchettes à 80&nbsp;% calculées à partir des erreurs passées des projections, par le projet <a class="inline" href="https://github.com/fbastin/pib-mondial">pib-mondial</a>. Frontières indicatives (Natural Earth).</span> <span id="pData"></span></footer>
+  </main>
+
   <main class="view" id="view-saisons" hidden>
   <header>
     <h1 data-i18n="h1">Pourquoi y <span class="nw">a-t-il</span> des saisons&nbsp;?</h1>
@@ -692,9 +803,9 @@ a.inline{color:inherit;text-underline-offset:3px}
    Le français des textes fixes est dans le HTML ; chaque vue ajoute son anglais à Site.EN sous la même clé (data-i18n). */
 var Site=(function(){
   "use strict";
-  var VIEWS=['globe','jour','fuseaux','saisons'], LS='saisons-lang';
-  var TITLES={globe:['Globe terrestre','Earth Globe'], jour:['Le jour et la nuit','Day and Night'], fuseaux:['Les fuseaux horaires','Time Zones'], saisons:['Saisons de la Terre',"Earth's Seasons"]};
-  var S={lang:'fr', view:'globe', EN:{brand:"Earth", navGlobe:"3D Globe", navDay:"Day and night", navTz:"Time zones", navSeasons:"Seasons", navAria:"Site sections"}};
+  var VIEWS=['globe','jour','fuseaux','population','saisons'], LS='saisons-lang';
+  var TITLES={globe:['Globe terrestre','Earth Globe'], jour:['Le jour et la nuit','Day and Night'], fuseaux:['Les fuseaux horaires','Time Zones'], population:['La population','Population'], saisons:['Saisons de la Terre',"Earth's Seasons"]};
+  var S={lang:'fr', view:'globe', EN:{brand:"Earth", navGlobe:"3D Globe", navDay:"Day and night", navTz:"Time zones", navPop:"Population", navSeasons:"Seasons", navAria:"Site sections"}};
   var langCbs=[], viewCbs=[], statics=[], sattrs=[];
   function $(id){return document.getElementById(id)}
   function fromHash(){

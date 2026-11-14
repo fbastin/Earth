@@ -29,6 +29,8 @@ index.html, globe.js and the scripts in tools/.
 
 It does NOT apply to the files in tiles/ and data/. Those are derived from
 third-party sources and remain under the terms of those sources, listed in
-README.md (section "Crédits et licences des données"). In particular, the
+README.md (section "Credits and data licenses"). In particular, the
 place files data/places*.json contain GeoNames data, licensed under
-Creative Commons Attribution 4.0 (CC BY 4.0), which requires attribution.
+Creative Commons Attribution 4.0 (CC BY 4.0), which requires attribution,
+and data/population.json contains United Nations, World Bank, IMF and OECD
+data under their respective terms.

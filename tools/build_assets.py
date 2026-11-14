@@ -372,6 +372,43 @@ def build_timezones(cache, out):
     im.save(os.path.join(out, "data", "tz.png"), optimize=True)
 
 
+def build_countries(cache, out):
+    """Carte des pays : une image 4096 × 2048 où chaque pixel vaut 1 + le rang du pays dans data/pays.json (0 : mer).
+
+    data/pays.json donne, pour chaque rang : [code ISO3, nom français, nom anglais, latitude, longitude, taille en degrés].
+    Le code est celui des données de population (Banque mondiale, ONU) ; quelques territoires y sont comptés avec un
+    autre pays et en prennent le code.
+    """
+    from PIL import ImageDraw
+    alias = {"KOS": "XKX", "SOL": "SOM", "CYN": "CYP", "SAH": "ESH", "PSX": "PSE", "SDS": "SSD", "KAS": "IND"}
+    W, H = 4096, 2048
+    rows, polys = [], []
+    for f in geo(cache, "ne_50m_admin_0_countries")["features"]:
+        p = {k.lower(): v for k, v in f["properties"].items()}
+        a3 = p["adm0_a3"]
+        iso = p.get("iso_a3_eh") or "-99"
+        code = alias.get(a3) or (iso if iso != "-99" else a3)
+        fr = SHORT_FR.get(a3) or p.get("name_fr") or p["name"]
+        en = SHORT_EN.get(a3) or p.get("name_en") or p["name"]
+        rows.append([code, fr[0].upper() + fr[1:], en, round(p["label_y"], 2), round(p["label_x"], 2), span_of(f["geometry"], p["label_y"])])
+        gm = f["geometry"]
+        for poly in ([gm["coordinates"]] if gm["type"] == "Polygon" else gm["coordinates"]):
+            ring = poly[0]
+            xs = [q[0] for q in ring]
+            ys = [q[1] for q in ring]
+            polys.append(((max(xs) - min(xs)) * (max(ys) - min(ys)), len(rows), [((x + 180) / 360 * W, (90 - y) / 180 * H) for x, y in ring]))
+    assert len(rows) < 256
+    im = Image.new("L", (W, H), 0)
+    d = ImageDraw.Draw(im)
+    for _, v, pts in sorted(polys, key=lambda t: -t[0]):      # les grands d'abord : les enclaves les recouvrent
+        if len(pts) >= 3:
+            d.polygon(pts, fill=v)
+    im.save(os.path.join(out, "data", "pays.png"), optimize=True)
+    with open(os.path.join(out, "data", "pays.json"), "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False, separators=(",", ":"))
+    print("pays : %d, %.1f %% de pixels en mer" % (len(rows), 100.0 * (np.asarray(im) == 0).mean()), flush=True)
+
+
 def main():
     cache, out = sys.argv[1], sys.argv[2]
     levels = [int(x) for x in sys.argv[3].split(",")] if len(sys.argv) > 3 else [0, 1, 2, 3]
@@ -380,6 +417,7 @@ def main():
     build_vectors(cache, out)
     build_places(cache, out)
     build_timezones(cache, out)
+    build_countries(cache, out)
     build_elev(cache, out)
     build_night(cache, out)
     meta = build_day(cache, out, levels)
