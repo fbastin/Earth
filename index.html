@@ -1,8 +1,12 @@
 <meta charset="utf-8">
 <meta name="claude:viewport-fit-sides" content="cover">
 <title>La Terre interactive</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
 <style>
+/* Polices servies par le site (fonts/, licence OFL) : aucune requête vers un autre serveur. Fichiers variables, découpés en latin et latin étendu. */
+@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:500 700;font-display:swap;src:url(fonts/bricolage-grotesque-latin.woff2) format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:500 700;font-display:swap;src:url(fonts/bricolage-grotesque-latin-ext.woff2) format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
+@font-face{font-family:"Instrument Sans";font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/instrument-sans-latin.woff2) format("woff2");unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:"Instrument Sans";font-style:normal;font-weight:400 600;font-display:swap;src:url(fonts/instrument-sans-latin-ext.woff2) format("woff2");unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
 /* Layout : un observatoire. Une barre de navigation mène à deux salles.
    Globe : un grand hublot sombre où l'on manipule la Terre, les commandes posées sur la vitre.
    Saisons : deux hublots (orbite, globe) en haut, la barre de date dessous, puis les réglages et les mesures,
@@ -35,7 +39,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16p
 /* navigation du site */
 .site{display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap}
 .brand{font-family:var(--display);font-weight:700;font-size:1.25rem;letter-spacing:-0.01em;color:var(--ink);text-decoration:none}
-.tabs{display:flex;gap:4px;flex:1;min-width:0}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0}
 .tabs a{color:var(--ink-2);text-decoration:none;font-weight:600;font-size:.95rem;padding:6px 12px;border-radius:999px;white-space:nowrap}
 .tabs a:hover{background:var(--hl);color:var(--ink)}
 .tabs a[aria-current="page"]{background:var(--ink);color:var(--bg)}
@@ -275,9 +279,9 @@ a.inline{color:inherit;text-underline-offset:3px}
 .pkey i.d{border-top-style:dashed}
 .pkey i.b{height:10px;border:0;background:var(--s2);opacity:.22}
 
-@media (max-width:600px){            /* téléphone : les onglets passent sous le nom du site */
+@media (max-width:820px){            /* téléphone, tablette en portrait : les onglets passent sous le nom du site */
   .site .langs{margin-left:auto}
-  .tabs{order:3;flex:1 0 100%;flex-wrap:wrap}
+  .tabs{order:3;flex:1 0 100%}
   .tabs a{padding:6px 10px}
 }
 @media (max-width:900px){

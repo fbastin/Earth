@@ -1,6 +1,6 @@
 # Earth
 
-An interactive teaching site about the Earth, in French and English, meant as classroom support. It is a single page and depends on no outside service: the imagery, the relief and the places are all in the repository.
+An interactive teaching site about the Earth, in French and English, meant as classroom support. It is a single page and depends on no outside service: the imagery, the relief, the places and the typefaces are all in the repository.
 
 Five views:
 
@@ -38,6 +38,7 @@ Opening `index.html` straight from disk does not work: the browser then refuses 
 | `index.html` | The page: navigation, the views, styles, Seasons view |
 | `globe.js` | The globe, the "Day and night" and "Time zones" lessons, the Population view |
 | `tiles/` | Daytime imagery at four levels of detail, night lights |
+| `fonts/` | The two typefaces of the page and their licenses |
 | `data/` | Relief, coastlines and borders, places, time zones, country map, population and GDP |
 | `tools/build_assets.py` | Rebuilds `tiles/` and `data/` from the public sources |
 | `tools/update_population.py` | Refreshes `data/population.json` from the pib-mondial repository |
@@ -94,7 +95,7 @@ Acknowledgments requested by the sources:
 
 The GDP figures are not those sources' figures as published: pib-mondial splices the World Bank levels with the growth rates of the IMF forecasts and of the OECD scenario, converts them to purchasing power parity, and computes the ranges. None of these organisations endorses the result. Anyone reusing `data/population.json` commercially needs the IMF's permission for the part derived from its data (copyright@imf.org).
 
-The page also loads two typefaces from Google Fonts, Bricolage Grotesque and Instrument Sans, under the SIL Open Font License. They are not in the repository.
+The two typefaces of the page, Bricolage Grotesque and Instrument Sans, are in `fonts/` (Latin and Latin Extended subsets, as served by Google Fonts). They are under the SIL Open Font License 1.1: see `fonts/OFL-BricolageGrotesque.txt` and `fonts/OFL-InstrumentSans.txt`. When the page is published as an artifact, `fonts/` has to be published with it, like `data/` and `tiles/`.
 
 ## Known limits
 
@@ -107,4 +108,4 @@ The page also loads two typefaces from Google Fonts, Bricolage Grotesque and Ins
 
 ## License
 
-The project's code and texts (`index.html`, `globe.js`, `tools/`) are under the MIT license: see [LICENSE](LICENSE). The imagery and the data remain under the terms of their sources, detailed above.
+The project's code and texts (`index.html`, `globe.js`, `tools/`) are under the MIT license: see [LICENSE](LICENSE). The imagery, the data and the typefaces remain under the terms of their sources, detailed above.

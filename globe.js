@@ -105,7 +105,7 @@ var D={
   glErr:["Le rendu 3D n'a pas pu démarrer sur cette carte graphique.","3D rendering could not start on this graphics card."],
   loading:["Chargement du globe…","Loading the globe…"],
   noData:["Les images du globe n'ont pas pu être chargées. Rechargez la page.","The globe imagery could not be loaded. Reload the page."],
-  lost:["L'affichage 3D s'est interrompu. Rechargez la page.","The 3D display stopped. Reload the page."],
+  lost:["L'affichage 3D s'est interrompu. Il reprend dès que le navigateur le permet ; sinon, rechargez la page.","The 3D display stopped. It resumes as soon as the browser allows; otherwise, reload the page."],
   elev:["altitude ≈ {0} m","elevation ≈ {0} m"], depth:["profondeur ≈ {0} m","depth ≈ {0} m"],
   eye:["vue de {0} km d'altitude","eye altitude {0} km"], ex:["relief × {0}","relief × {0}"],
   country:["pays","country"], city:["ville","city"], capital:["capitale","capital"], coords:["coordonnées","coordinates"],
@@ -123,6 +123,7 @@ var D={
   fCity:["<b>{0}</b> : {1} ({2})","<b>{0}</b>: {1} ({2})"],
   fAhead:["{0} a {1} d'avance sur {2}.","{0} is {1} ahead of {2}."], fSame:["Les deux villes ont la même heure.","Both cities have the same time."],
   fNoTz:["Chargement des fuseaux…","Loading time zones…"],
+  fTzErr:["La carte des fuseaux n'a pas pu être chargée. Nouvel essai en cours…","The time zone map could not be loaded. Trying again…"],
   fDate:["{0}on est le {1}","{0}it is {1}"],
   fDateTxt:["Deux dates coexistent sur la Terre : {0}. La limite fixe est la ligne de changement de date ; la limite mobile est le méridien de minuit.","Two dates coexist on Earth: {0}. The fixed boundary is the International Date Line; the moving boundary is the midnight meridian."],
   fDate3:["Trois dates coexistent en ce moment, à cause des fuseaux UTC+13 et UTC+14 : {0}.","Three dates coexist right now, because of the UTC+13 and UTC+14 zones: {0}."],
@@ -260,9 +261,9 @@ var opt={borders:true,names:true,grid:false,equator:false,circles:false,axis:fal
 var SPEEDS=[0.1,0.25,0.5,1,2,4,8], speed=1;      /* heures simulées par seconde */
 var soft=false, modeChosen=false;
 var sunSt={day:171,hour:12,playing:false};
-var dirty=true, inited=false, gl=null, frameNo=0, lastT=0;
+var dirty=true, inited=false, gl=null, glCtx=null, glGen=0, frameNo=0, lastT=0;       /* glGen change à chaque perte du contexte WebGL : ce qui a été demandé avant est périmé */
 var eye=[0,0,0], fwd=[0,0,0], rgt=[0,0,0], upv=[0,0,0], eyeD=1, W=1, H=1, DPR=1, aspect=1, VP=new Float32Array(16), SVP=new Float32Array(16);
-var tz={on:false,step:0,a:null,b:null,note:-1,saved:null}, pins=[];
+var tz={on:false,step:0,a:null,b:null,note:-1,saved:null,n:1}, pins=[];       /* n : nombre de minuits UTC passés dans la leçon, pour qu'une date garde sa couleur */
 var pop={on:false,ind:'pop',year:0,iso:'',today:true,playing:false,acc:0,stop:0,step:-1,saved:null};
 var hover=null, pin=null, measure={on:false,pts:[]}, fly=null, zoomTo=null, anchor=null, tourMsg=null;
 var msgEl=$('gMsg'), foot=document.querySelector('.gfoot');
@@ -414,12 +415,15 @@ function makeTex(bmp,repeatS,mips){
   return tex;
 }
 function loadTile(tl){
+  var gen=glGen;
   tl.state=1; loading++;
   loadBitmap('tiles/'+tl.L+'/'+tl.c+'_'+tl.r+'.jpg').then(function(bmp){
+    if(gen!==glGen){ if(bmp.close) bmp.close(); return; }       /* contexte perdu entre-temps : la tuile sera redemandée */
     tl.tex=makeTex(bmp,tl.L===0,true); if(bmp.close) bmp.close();
     tl.state=2; tl.used=frameNo; usedBytes+=tl.bytes;
     if(tl.L===0){ stage.removeAttribute('aria-busy'); if(busyMsg){busyMsg=false; showMsg('');} }
   }).catch(function(){
+    if(gen!==glGen) return;
     tl.state=3; if(tl.L===0) showMsg(t('noData'),true);
   }).then(function(){ loading--; dirty=true; });
 }
@@ -467,6 +471,7 @@ function lineSet(name,polys,color,deg){    /* polys : listes [lon,lat,lon,lat…
       return f; })};
     return;
   }
+  if(!gl){ lineSets[name]={vao:null,vbo:null,count:0,color:color,polys:polys,deg:deg}; return; }       /* contexte perdu : tracé au retour */
   var a=new Float32Array(n*8), k=0, s=deg?1:0.01;
   function put(lon,lat){var v=ll2v(lat,lon); a[k++]=v[0]; a[k++]=v[1]; a[k++]=v[2]; a[k++]=elevAt(lat,lon)/6371008.8;}
   polys.forEach(function(p){ for(var i=0;i+3<p.length;i+=2){ put(p[i]*s,p[i+1]*s); put(p[i+2]*s,p[i+3]*s); } });
@@ -616,7 +621,7 @@ function step(dt){
     dirty=true;
   }
   if(sunSt.playing&&(opt.sun||tz.on)){
-    sunSt.hour+=dt*speed; if(sunSt.hour>=24){sunSt.hour-=24; if(!lesson.on&&!tz.on) sunSt.day=(sunSt.day+1)%365;}
+    sunSt.hour+=dt*speed; if(sunSt.hour>=24){sunSt.hour-=24; if(!lesson.on){ sunSt.day=(sunSt.day+1)%365; if(tz.on) tz.n++; }}
     syncSun(); dirty=true;
   }
   if(pop.on&&pop.playing&&popData){        /* les années défilent */
@@ -655,7 +660,7 @@ function zoomBy(f,x,y){
 /* ---------- fuseaux horaires ----------
    data/tz.png : chaque pixel vaut 1 + (décalage UTC + 12 h) en quarts d'heure. Une petite palette de 256 couleurs
    dit comment teinter chaque décalage ; la changer suffit pour colorer par fuseau, par date ou pour deux villes. */
-var TZW=0, TZH=0, tzPx=null, tzState=0, tzTexReal=null, tzTexIdeal=null, palTex=null, palKey='', pal=new Uint8Array(1024);
+var TZW=0, TZH=0, tzPx=null, tzState=0, tzFails=0, tzTexReal=null, tzTexIdeal=null, palTex=null, palKey='', pal=new Uint8Array(1024);
 var tzIdeal=new Uint8Array(2048);
 (function(){ for(var i=0;i<2048;i++){ var lon=(i+0.5)/2048*360-180, k=Math.round(lon/15); tzIdeal[i]=(k+12)*4+1; } })();    /* 24 tranches de 15° */
 function lumTex(data,w,h){
@@ -676,13 +681,16 @@ function ensurePal(){
 function loadTz(){
   if(tzState||!inited||!(gl||soft)) return;
   tzState=1;
-  if(gl){ ensurePal(); tzTexIdeal=lumTex(tzIdeal,2048,1); }
+  if(gl){ ensurePal(); if(!tzTexIdeal) tzTexIdeal=lumTex(tzIdeal,2048,1); }
   loadBitmap('data/tz.png').then(function(bmp){
     var w=bmp.width, h=bmp.height, d=pixelsOf(bmp), a=new Uint8Array(w*h);
     for(var i=0;i<w*h;i++) a[i]=d[i]&255;
     TZW=w; TZH=h; tzPx=a; if(gl) tzTexReal=lumTex(a,w,h);
-    tzState=2; hud={}; dirty=true;
-  }).catch(function(){tzState=0;});
+    tzState=2; tzFails=0; hud={}; dirty=true;
+  }).catch(function(){        /* échec : on le dit, puis nouvel essai après 2, 4, 8… secondes (30 au plus), tant que les fuseaux sont demandés */
+    tzState=3; tzFails++; hud={}; dirty=true;
+    setTimeout(function(){ tzState=0; if(tz.on||opt.tz) loadTz(); },Math.min(30000,1000*Math.pow(2,tzFails)));
+  });
 }
 function tzAt(lat,lon){       /* décalage UTC en heures de l'heure légale, ou null si la carte n'est pas chargée */
   if(!tzPx) return null;
@@ -694,12 +702,13 @@ function zoneShow(){          /* quoi teinter : rien, les pays, les tranches th�
   if(tz.on) return tz.step===0?null:tz.step===1?{ideal:true,pal:'zones'}:{ideal:false,pal:tz.step===3?'pair':tz.step===4?'date':'zones'};
   return opt.tz?{ideal:false,pal:'zones'}:null;
 }
-function tzReady(zs){ if(zs.pays) return true; if(!tzState) loadTz(); return zs.ideal?tzState>0:tzState===2; }
+function tzReady(zs){ if(zs.pays) return true; if(!tzState) loadTz(); return zs.ideal?!!(tzTexIdeal||soft):tzState===2; }
 var ZCOL=[[70,150,255],[255,190,70],[90,200,130],[235,110,110]], DCOL=[[70,150,255],[255,176,64],[240,96,170]];
+function dcol(sh){ return DCOL[((tz.n+sh)%3+3)%3]; }       /* couleur de la date UTC décalée de sh jours : la même avant et après minuit UTC */
 function palette(zs){         /* remplit pal ; renvoie une clé qui change quand la palette change */
   var key=zs.pal, oa=null, ob=null, i, off, c, a;
   if(zs.pal==='pair'){ oa=tzAt(tz.a.lat,tz.a.lon); ob=tzAt(tz.b.lat,tz.b.lon); key+=oa+'/'+ob; }
-  if(zs.pal==='date') key+=Math.round(sunSt.hour*4);
+  if(zs.pal==='date') key+=Math.floor(sunSt.hour*4)+'/'+tz.n;
   if(zs.pal==='pop') key+=pop.ind+pop.year+'/'+popVer;
   if(key===pal.key) return key;
   pal.key=key;
@@ -716,7 +725,7 @@ function palette(zs){         /* remplit pal ; renvoie une clé qui change quand
     off=(i-1)/4-12;
     if(zs.pal==='zones'){ c=off%1?[205,125,235]:ZCOL[((off%4)+4)%4]; a=108; }
     else if(zs.pal==='pair'){ if(off===oa){c=[255,200,60]; a=150;} else if(off===ob){c=[90,170,255]; a=150;} else {c=[14,18,36]; a=95;} }
-    else { c=DCOL[Math.floor((sunSt.hour+off)/24)+1]||DCOL[1]; a=118; }
+    else { c=dcol(Math.floor((sunSt.hour+off)/24)); a=118; }
     pal[i*4]=c[0]; pal[i*4+1]=c[1]; pal[i*4+2]=c[2]; pal[i*4+3]=a;
   }
   return key;
@@ -1384,7 +1393,7 @@ function tzLive(){
   if(i===0) return tf('fLive1',lonStr(sp.lon));
   if(i===1) return tf('fLive2','<b>'+clockStr(sunSt.hour)+'</b>');
   if(i===2) return tz.note>=0?esc(TZX[tz.note][5+li]):t('fLive3');
-  if(!tzPx) return t('fNoTz');
+  if(!tzPx) return t(tzFails?'fTzErr':'fNoTz');
   if(i===3){
     var oa=tzAt(tz.a.lat,tz.a.lon), ob=tzAt(tz.b.lat,tz.b.lon), la=localAt(oa), lb=localAt(ob);
     function one(c,o,l,col){ return '<i style="background:'+col+'"></i>'+tf('fCity','\u0001',clockStr(l.h)+(l.shift>0?', '+t('nextDay'):l.shift<0?', '+t('prevDay'):''),offStr(o)).replace('\u0001',esc(c.n[li])); }
@@ -1394,7 +1403,7 @@ function tzLive(){
   var parts=[];
   [-1,0,1].forEach(function(sh){
     var any=false; for(var o=-12;o<=14;o+=0.25){ if(Math.floor((sunSt.hour+o)/24)===sh){any=true; break;} }
-    if(any) parts.push('<i style="background:rgb('+DCOL[sh+1].join(',')+')"></i><b>'+dayName(sh)+'</b>');
+    if(any) parts.push('<i style="background:rgb('+dcol(sh).join(',')+')"></i><b>'+dayName(sh)+'</b>');
   });
   return tf(parts.length>2?'fDate3':'fDateTxt',parts.join(parts.length>2?', ':t('hAnd')));
 }
@@ -1476,7 +1485,7 @@ function enterTz(){
   savePrefs();
   $('fStage').appendChild(stage);
   tz.saved={cam:{lat:cam.lat,lon:cam.lon,range:cam.range,heading:cam.heading,tilt:cam.tilt},pin:pin,day:sunSt.day,hour:sunSt.hour};
-  tz.on=true; tz.step=prefs.tz.step; tz.a=prefs.tz.a; tz.b=prefs.tz.b; tz.note=-1;
+  tz.on=true; tz.n=1; tz.step=prefs.tz.step; tz.a=prefs.tz.a; tz.b=prefs.tz.b; tz.note=-1;
   $('gPanel').hidden=true; $('gLayers').setAttribute('aria-expanded','false');
   setNow(); speed=1; loadTz();
   applyTz(tz.step);
@@ -1546,7 +1555,24 @@ function tickStr(ind,v){           /* étiquette courte : légende et axe */
   if(v>=1e3) return nf(v/1e3,(v/1e3)%1?1:0)+' '+t('pM');
   return nf(v,0)+' '+t('pK');
 }
-function okPop(d){ return !!d&&d.format===1&&d.pays&&d.monde&&d.population&&d.pib&&typeof d.population.debut==='number'&&typeof d.pib.debut==='number'&&typeof d.version==='string'&&!isNaN(Date.parse(d.version)); }
+function okPop(d){            /* le fichier a-t-il bien la forme attendue ? Tout ce que la vue lit est vérifié, car une copie adoptée est gardée par le navigateur */
+  function int(x){ return typeof x==='number'&&isFinite(x)&&Math.floor(x)===x; }
+  function span(m){ return !!m&&int(m.debut)&&int(m.fin)&&int(m.observe_jusqua)&&int(m.fourchette_des)&&m.debut<=m.observe_jusqua&&m.observe_jusqua<=m.fin&&m.debut<=m.fourchette_des&&m.fourchette_des<=m.fin&&m.fin-m.debut<1000; }
+  function serie(a,max,exact){       /* suite de nombres (ou de trous) d'au plus max valeurs */
+    if(!Array.isArray(a)||a.length>max||(exact&&a.length!==max)) return false;
+    for(var i=0;i<a.length;i++) if(a[i]!==null&&!(typeof a[i]==='number'&&isFinite(a[i])&&a[i]>=0)) return false;
+    return true;
+  }
+  function opt(a,max){ return a===undefined||serie(a,max); }
+  if(!d||d.format!==1||typeof d.version!=='string'||isNaN(Date.parse(d.version))||!span(d.population)||!span(d.pib)) return false;
+  var P=d.population, G=d.pib, nP=P.fin-P.debut+1, nG=G.fin-G.debut+1, fP=P.fin-P.fourchette_des+1, fG=G.fin-G.fourchette_des+1, k, f, n=0;
+  if(!d.monde||!serie(d.monde.pop,nP,true)||!d.pays||typeof d.pays!=='object'||Array.isArray(d.pays)) return false;
+  for(k in d.pays){
+    f=d.pays[k]; n++;
+    if(!f||typeof f!=='object'||!serie(f.pop,nP)||!opt(f.pib,nG)||!opt(f.pop_bas,fP)||!opt(f.pop_haut,fP)||!opt(f.pib_bas,fG)||!opt(f.pib_haut,fG)||(f.nom!==undefined&&typeof f.nom!=='string')) return false;
+  }
+  return n>=100;       /* un fichier tronqué à quelques pays n'est pas une mise à jour */
+}
 function usePop(d,src){            /* adopte ces données si elles sont valides et plus récentes que celles en place */
   if(!okPop(d)||(popData&&Date.parse(d.version)<=Date.parse(popData.version))) return false;
   popData=d; popSrc=src; popVer++; pal.key='';
@@ -1557,7 +1583,7 @@ function loadPop(){
   if(popState) return;
   popState=1;
   fetch('data/population.json').then(function(r){return r.json();}).then(function(d){usePop(d,'local');}).catch(function(){}).then(function(){
-    try{ usePop(JSON.parse(localStorage.getItem(POP_LS)||'null'),'remote'); }catch(e){}
+    try{ var kept=JSON.parse(localStorage.getItem(POP_LS)||'null'); if(kept&&!okPop(kept)) localStorage.removeItem(POP_LS); else usePop(kept,'remote'); }catch(e){ try{localStorage.removeItem(POP_LS);}catch(e2){} }
     if(!popData){ popState=3; renderP(); }
     return fetch(POP_URL,{cache:'no-cache'}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(d){
       if(usePop(d,'remote')) try{ localStorage.setItem(POP_LS,JSON.stringify(d)); }catch(e){}
@@ -1906,16 +1932,55 @@ Site.onView(function(v){
 });
 
 /* ---------- démarrage ---------- */
+function setupGL(){       /* programmes et objets fixes ; refait après une perte du contexte WebGL */
+  pTile=program(VS_TILE,FS_TILE,['aDir','aElev','aUV'],['uVP','uEx','uTex','uNight','uTz','uPal','uSun','uSunOn','uNightOn','uTzOn']);
+  pLine=program(VS_LINE,FS_LINE,['aDir','aElev'],['uVP','uEx','uEye','uColor','uFade']);
+  pAtmo=program(VS_ATMO,FS_ATMO,['aP'],['uEye','uR','uU','uF','uSun','uSunOn']);
+  pStar=program(VS_STAR,FS_STAR,['aP'],['uVP','uSize']);
+  aniso=gl.getExtension('EXT_texture_filter_anisotropic');
+  var s=20240611, st=new Float32Array(STARS*4);
+  function rnd(){s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff;}
+  for(var i=0;i<STARS;i++){var z=rnd()*2-1, a=rnd()*TAU, r=Math.sqrt(1-z*z), b=rnd(); st[i*4]=r*Math.cos(a); st[i*4+1]=z; st[i*4+2]=r*Math.sin(a); st[i*4+3]=b*b*b;}
+  starVao=gl.createVertexArray(); gl.bindVertexArray(starVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER,st,gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,4,gl.FLOAT,false,16,0);
+  triVao=gl.createVertexArray(); gl.bindVertexArray(triVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0); gl.bindVertexArray(null);
+}
+function loadNight(){
+  var gen=glGen;
+  loadBitmap('tiles/night.jpg').then(function(bmp){
+    if(soft){ NW=bmp.width; NH=bmp.height; nightPx=pixelsOf(bmp); } else if(gen===glGen) nightTex=makeTex(bmp,true,false);
+    dirty=true;
+  }).catch(function(){});
+}
+/* Perte du contexte WebGL (onglet mis en arrière-plan sur mobile, pilote graphique relancé…) : tout ce qui vivait sur la
+   carte graphique est détruit. On l'oublie, puis au retour du contexte on recrée les objets fixes et les textures dont
+   les données sont en mémoire ; les tuiles et l'image de nuit sont redemandées (le navigateur les a en cache). */
+function glLost(){
+  gl=null; glGen++;
+  tiles.clear(); usedBytes=0; ibos={};
+  for(var k in lineSets){ lineSets[k].vao=lineSets[k].vbo=null; }
+  nightTex=tzTexReal=tzTexIdeal=paysTex=palTex=null; palKey=''; pal.key='';
+  showMsg(t('lost'),true);
+}
+function glBack(){
+  gl=glCtx;
+  try{ setupGL(); }catch(e){ gl=null; return; }
+  rebuildLines();
+  if(tzState||paysState) ensurePal();
+  if(tzState) tzTexIdeal=lumTex(tzIdeal,2048,1);
+  if(tzPx) tzTexReal=lumTex(tzPx,TZW,TZH);
+  if(paysPx) paysTex=lumTex(paysPx,PW,PH);
+  loadNight();
+  showMsg(t('loading')); busyMsg=true; stage.setAttribute('aria-busy','true'); hud={}; dirty=true;
+}
 function init(){
   inited=true;
   setNow(); sunSt.hour=Math.round(sunSt.hour*4)/4;
-  gl=getGL();
-  if(gl) try{
-    pTile=program(VS_TILE,FS_TILE,['aDir','aElev','aUV'],['uVP','uEx','uTex','uNight','uTz','uPal','uSun','uSunOn','uNightOn','uTzOn']);
-    pLine=program(VS_LINE,FS_LINE,['aDir','aElev'],['uVP','uEx','uEye','uColor','uFade']);
-    pAtmo=program(VS_ATMO,FS_ATMO,['aP'],['uEye','uR','uU','uF','uSun','uSunOn']);
-    pStar=program(VS_STAR,FS_STAR,['aP'],['uVP','uSize']);
-  }catch(e){ gl=null; }
+  gl=glCtx=getGL();
+  if(gl) try{ setupGL(); }catch(e){ gl=null; }
   if(!gl){        /* pas de WebGL utilisable : rendu par le processeur, sur une toile neuve (l'ancienne a pu garder un contexte 3D) */
     var c2=glc.cloneNode(false); glc.parentNode.replaceChild(c2,glc);
     ['pointerdown','pointermove','pointerup','pointercancel','pointerleave','contextmenu','keydown'].forEach(function(n){c2.addEventListener(n,handlers[n]);});
@@ -1927,18 +1992,8 @@ function init(){
     showMode();
   }
   if(gl){
-  aniso=gl.getExtension('EXT_texture_filter_anisotropic');
-  glc.addEventListener('webglcontextlost',function(ev){ev.preventDefault(); gl=null; showMsg(t('lost'),true);});
-
-  var s=20240611, st=new Float32Array(STARS*4);
-  function rnd(){s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff;}
-  for(var i=0;i<STARS;i++){var z=rnd()*2-1, a=rnd()*TAU, r=Math.sqrt(1-z*z), b=rnd(); st[i*4]=r*Math.cos(a); st[i*4+1]=z; st[i*4+2]=r*Math.sin(a); st[i*4+3]=b*b*b;}
-  starVao=gl.createVertexArray(); gl.bindVertexArray(starVao);
-  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER,st,gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,4,gl.FLOAT,false,16,0);
-  triVao=gl.createVertexArray(); gl.bindVertexArray(triVao);
-  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0); gl.bindVertexArray(null);
+    glc.addEventListener('webglcontextlost',function(ev){ ev.preventDefault(); glLost(); });
+    glc.addEventListener('webglcontextrestored',glBack);
   }
 
   showMsg(t('loading')); busyMsg=true;
@@ -1950,10 +2005,7 @@ function init(){
     lineSet('coast',d.coast,[1,1,1,0.5]); lineSet('lakes',d.lakes,[1,1,1,0.4]); lineSet('borders',d.borders,[1,0.93,0.72,0.8]); dirty=true;
   }).catch(function(){});
   loadPlaces();
-  loadBitmap('tiles/night.jpg').then(function(bmp){
-    if(soft){ NW=bmp.width; NH=bmp.height; nightPx=pixelsOf(bmp); } else nightTex=makeTex(bmp,true,false);
-    dirty=true;
-  }).catch(function(){});
+  loadNight();
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(function(){widths.clear(); dirty=true;});
   if(window.ResizeObserver) new ResizeObserver(function(){dirty=true;}).observe(stage);
   window.addEventListener('resize',function(){dirty=true;});

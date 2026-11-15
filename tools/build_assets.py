@@ -75,8 +75,16 @@ def mosaic(path_of, c0, r0, nc, nr):
     return im
 
 
+def level_meta(L):
+    """Découpage du niveau L, tel que la page le lit dans tiles/levels.json."""
+    z, size, q = LEVELS[L]
+    if L == 0:
+        return {"cols": 1, "rows": 1, "w": 4096, "h": 2048}
+    n, k = 2 ** (z - 3), size // 512
+    return {"cols": 10 * n // k, "rows": 5 * n // k, "w": size, "h": size}
+
+
 def build_day(cache, out, levels):
-    meta = []
     for L in sorted(levels):
         z, size, q = LEVELS[L]
         d = os.path.join(out, "tiles", str(L))
@@ -84,7 +92,6 @@ def build_day(cache, out, levels):
         if L == 0:  # une seule image pour la Terre entière, ramenée à 4096 px (taille de texture admise partout)
             p = gibs_tiles(cache, DAY, z, 10, 5)
             mosaic(p, 0, 0, 10, 5).resize((4096, 2048), Image.LANCZOS).save(os.path.join(d, "0_0.jpg"), quality=q, optimize=True, progressive=True)
-            meta.append({"cols": 1, "rows": 1, "w": 4096, "h": 2048})
             continue
         n = 2 ** (z - 3)
         cols, rows, k = 10 * n, 5 * n, size // 512
@@ -92,9 +99,10 @@ def build_day(cache, out, levels):
         for r in range(rows // k):
             for c in range(cols // k):
                 mosaic(p, c * k, r * k, k, k).save(os.path.join(d, "%d_%d.jpg" % (c, r)), quality=q, optimize=True, progressive=True)
-        meta.append({"cols": cols // k, "rows": rows // k, "w": size, "h": size})
         print("jour niveau", L, "ok", flush=True)
-    return meta
+    # levels.json décrit toujours tous les niveaux, même quand on n'en reconstruit que certains :
+    # la page le lit par rang, le niveau L à la position L.
+    return [level_meta(L) for L in sorted(LEVELS)]
 
 
 def build_night(cache, out):
