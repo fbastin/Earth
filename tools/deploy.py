@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Installe ou met à jour le site dans un dossier servi par un serveur web.
 
-    python3 tools/deploy.py <dossier> [--back-url URL --back-fr TEXTE --back-en TEXTE]
+    python3 tools/deploy.py <dossier> [--no-wrap] [--back-url URL --back-fr TEXTE --back-en TEXTE]
 
 Le dossier reçoit la page complète (index.html avec l'enveloppe que la publication en artefact ajoute d'habitude),
 globe.js, data/, tiles/, fonts/ et LICENSE. Seuls les fichiers qui ont changé sont réécrits, chacun d'un seul coup :
@@ -9,6 +9,9 @@ le site reste utilisable pendant la mise à jour. Rien n'est supprimé dans le d
 
 --back-url ajoute en haut de la page un lien de retour vers le site qui l'héberge. Dans l'adresse, {lang} est remplacé
 par la langue affichée (fr ou en) ; --back-fr et --back-en donnent le texte du lien dans chaque langue.
+
+--no-wrap laisse index.html sans enveloppe, pour un serveur qui l'ajoute lui-même en servant la page (avec son
+propre lien de retour, par exemple) ; les options --back-… ne s'emploient alors pas.
 
 Les deux fichiers de données mis à jour par ailleurs (data/population.json, data/indicateurs.json) ne sont remplacés
 que si la copie du dépôt est plus récente que celle du dossier : voir tools/update_population.py et
@@ -84,6 +87,7 @@ def copier(rel, out):
 def main():
     ap = argparse.ArgumentParser(description="Installe ou met à jour le site dans un dossier servi par un serveur web.")
     ap.add_argument("dossier")
+    ap.add_argument("--no-wrap", action="store_true")
     ap.add_argument("--back-url")
     ap.add_argument("--back-fr")
     ap.add_argument("--back-en")
@@ -91,6 +95,8 @@ def main():
     back = [a.back_url, a.back_fr, a.back_en]
     if any(back) and not all(back):
         ap.error("--back-url, --back-fr et --back-en vont ensemble.")
+    if a.no_wrap and any(back):
+        ap.error("--no-wrap ne s'emploie pas avec --back-… : le serveur ajoute l'enveloppe et son propre lien.")
     out = os.path.abspath(a.dossier)
     if out == ROOT or out.startswith(ROOT + os.sep):
         ap.error("le dossier de destination doit être hors du dépôt.")
@@ -119,7 +125,9 @@ def main():
     if all(back):
         conf = json.dumps({"url": a.back_url, "fr": a.back_fr, "en": a.back_en}, ensure_ascii=False).replace("</", "<\\/")
         extra = BACK % conf
-    if ecrire(os.path.join(out, "index.html"), (HEAD + page + extra + TAIL).encode("utf-8")):
+    if not a.no_wrap:
+        page = HEAD + page + extra + TAIL
+    if ecrire(os.path.join(out, "index.html"), page.encode("utf-8")):
         changes.append("index.html")
 
     if not changes:

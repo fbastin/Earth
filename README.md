@@ -32,7 +32,7 @@ The site is static. `tools/deploy.py` copies it into a folder served by any web 
 python3 tools/deploy.py /var/www/example/earth
 ```
 
-Run it again after a `git pull`: only the files that changed are rewritten, and nothing is deleted. Three options, used together, add a link back to the hosting site at the top of the page: `--back-url` (where `{lang}` becomes `fr` or `en`), `--back-fr` and `--back-en` (the link text in each language).
+Run it again after a `git pull`: only the files that changed are rewritten, and nothing is deleted. Three options, used together, add a link back to the hosting site at the top of the page: `--back-url` (where `{lang}` becomes `fr` or `en`), `--back-fr` and `--back-en` (the link text in each language). If the server already wraps the page itself when serving it, pass `--no-wrap` instead: `index.html` is then installed without the wrapper.
 
 To keep the data of an installed site current without touching the repository, point the two update scripts at the folder, for instance from a monthly scheduled task:
 
