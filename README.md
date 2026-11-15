@@ -7,7 +7,7 @@ Five views:
 - **3D Globe**: a globe to explore in the manner of Google Earth. Satellite imagery down to 1 km per pixel, 3D relief, borders, place names, search across 484,000 places, distance measurement, day and night at any date and time, twelve places with a short commentary.
 - **Day and night**: a five-step lesson that drives the globe to explain why there is day, then night. Rotation axis, view tilted by 23.4°, a city to follow, adjustable date and speed.
 - **Time zones**: a five-step lesson on why the time differs from one country to another. Theoretical 15° zones, real zones coloured on the globe, the time difference between two cities, the International Date Line.
-- **Population**: every country coloured on the globe from 1950 to 2050, by population, population growth or GDP per capita. The path of each country is drawn with an 80% range for the projected years. Four steps explain the growth of the world population, its unevenness, why a projection comes with a range, and GDP per capita.
+- **Population**: every country coloured on the globe from 1950 to 2050, by population, population growth or GDP per capita, with the path of each country and an 80% range for the projected years. Four more indicators, observed only, run from 1950 to the latest year available: children per woman, life expectancy, CO₂ emissions per capita and urban population. Four steps explain the growth of the world population, its unevenness, why a projection comes with a range, and GDP per capita.
 - **Seasons**: a simulation of the orbit and the axial tilt, with day length and solar energy received by latitude.
 
 ## Running the site
@@ -39,9 +39,10 @@ Opening `index.html` straight from disk does not work: the browser then refuses 
 | `globe.js` | The globe, the "Day and night" and "Time zones" lessons, the Population view |
 | `tiles/` | Daytime imagery at four levels of detail, night lights |
 | `fonts/` | The two typefaces of the page and their licenses |
-| `data/` | Relief, coastlines and borders, places, time zones, country map, population and GDP |
+| `data/` | Relief, coastlines and borders, places, time zones, country map, population and GDP, other indicators |
 | `tools/build_assets.py` | Rebuilds `tiles/` and `data/` from the public sources |
 | `tools/update_population.py` | Refreshes `data/population.json` from the pib-mondial repository |
+| `tools/update_indicators.py` | Refreshes `data/indicateurs.json` from Our World in Data |
 | `tools/serve.py` | Local server |
 
 The code comments and the build script messages are in French.
@@ -66,6 +67,13 @@ The figures of the Population view come from a separate project, [pib-mondial](h
 - On every load, the page also asks GitHub for the current file and uses whichever of the two is more recent. The footer of the view says which one is shown and its date. When GitHub cannot be reached, the copy is used and nothing is reported. That is always the case for the page published as an artifact on claude.ai, which may not query another site.
 - To refresh the copy after pib-mondial has been updated (the IMF publishes in April and October): `python3 tools/update_population.py`.
 
+## Other indicators
+
+Children per woman, life expectancy, CO₂ emissions per capita and urban population come from [Our World in Data](https://ourworldindata.org). `tools/update_indicators.py` downloads each chart's data and metadata, keeps the years from 1950 and the countries of the map, and writes them to `data/indicateurs.json`. The page only reads that copy: it never contacts Our World in Data.
+
+- To refresh the copy: `python3 tools/update_indicators.py`. The script prints the license of every underlying source; check that they are still open before publishing.
+- To add an indicator: one line in `INDICATEURS` in the script, then its colours, thresholds and texts in `globe.js` (see the comment above `xData`) and a button in `index.html`.
+
 ## Credits and data licenses
 
 The files in `tiles/` and `data/` are derived from the sources below and remain under their terms. The project's MIT license does not apply to them.
@@ -80,6 +88,7 @@ The files in `tiles/` and `data/` are derived from the sources below and remain 
 | `data/places-small.json`, `data/places-tiny.json`, `data/places-hamlets.json` | GeoNames | CC BY 4.0 |
 | `data/pays.png`, `data/pays.json` | Natural Earth (countries at 1:50,000,000) | Public domain |
 | `data/population.json` | Population: United Nations, World Population Prospects 2024. GDP per capita: World Bank (World Development Indicators), IMF (World Economic Outlook, October 2026), OECD (long-term scenario, Economic Outlook 117). Ranges: pib-mondial | UN: CC BY 3.0 IGO. World Bank: CC BY 4.0. OECD: CC BY 4.0 under the OECD terms and conditions (content published since 1 July 2024). IMF: not an open licence; the IMF's terms allow copying, derivative works and redistribution with attribution, and require its permission for commercial reuse |
+| `data/indicateurs.json` | Our World in Data, from: United Nations, World Population Prospects 2024 (children per woman, life expectancy); United Nations, World Urbanization Prospects 2025 (urban population); Global Carbon Project, Global Carbon Budget (CO₂ emissions), divided by Our World in Data's population series | Our World in Data: CC BY 4.0. UN: CC BY 3.0 IGO. Global Carbon Project: CC BY 4.0. The charts' older sources (before 1950) are not used |
 | `data/tz.png` | Time zone boundaries from timezone-boundary-builder (release 2026f), derived from OpenStreetMap; UTC offsets from the IANA time zone database | Boundaries: © OpenStreetMap contributors, Open Database License (ODbL). IANA database: public domain |
 
 Acknowledgments requested by the sources:
@@ -92,6 +101,9 @@ Acknowledgments requested by the sources:
 - World Bank, World Development Indicators, licensed under CC BY 4.0: https://datacatalog.worldbank.org/search/dataset/0037712/World-Development-Indicators
 - Source: International Monetary Fund, World Economic Outlook Database, October 2026, https://www.imf.org/en/Publications/WEO
 - OECD (2025), OECD Economic Outlook No. 117, long-term baseline projections, https://www.oecd.org/en/topics/economic-outlook.html
+- Our World in Data, https://ourworldindata.org, licensed under CC BY 4.0: charts "Fertility rate: births per woman", "Life expectancy", "CO₂ emissions per capita" and "Share of population living in urban areas"
+- Global Carbon Project, Global Carbon Budget, licensed under CC BY 4.0: https://globalcarbonbudget.org
+- United Nations, Department of Economic and Social Affairs, Population Division (2025). World Urbanization Prospects 2025. Licensed under CC BY 3.0 IGO
 
 The GDP figures are not those sources' figures as published: pib-mondial splices the World Bank levels with the growth rates of the IMF forecasts and of the OECD scenario, converts them to purchasing power parity, and computes the ranges. None of these organisations endorses the result. Anyone reusing `data/population.json` commercially needs the IMF's permission for the part derived from its data (copyright@imf.org).
 
@@ -104,6 +116,7 @@ The two typefaces of the page, Bricolage Grotesque and Instrument Sans, are in `
 - Borders are indicative.
 - Time zones show normal legal time, without daylight saving time. For China the single official time (UTC+8) is used.
 - Population and GDP figures after the last observed year are projections. Their ranges come from past projection errors and assume the future errs no more than the past. Borders are those of today for every year: countries that no longer exist (USSR, Yugoslavia) appear as their successors.
+- The four Our World in Data indicators are observed values only: no projection, no range, and they stop in 2023 or 2025. CO₂ emissions are missing for some small territories. Urban population follows each country's own definition of a town.
 - GeoNames does not know the population of most hamlets: only places with a recorded population are included, and coverage is very uneven from one country to another.
 
 ## License

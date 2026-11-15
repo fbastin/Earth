@@ -247,6 +247,7 @@ a.inline{color:inherit;text-underline-offset:3px}
 /* ---------- vue « Population » : pays coloriés, année, trajectoire d'un pays ---------- */
 .pind{display:flex;flex-wrap:wrap;gap:6px}
 .pind button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
+.pind button:disabled{opacity:.45;cursor:default}
 #pKind{font-size:.875rem;color:var(--ink-2)}
 .plegend{display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--ink-2)}
 .plegend .bar{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px}
@@ -616,6 +617,10 @@ a.inline{color:inherit;text-underline-offset:3px}
             <button type="button" data-ind="pop" aria-pressed="true" data-i18n="pIndPop">Population</button>
             <button type="button" data-ind="growth" aria-pressed="false" data-i18n="pIndGrowth">Croissance</button>
             <button type="button" data-ind="gdp" aria-pressed="false" data-i18n="pIndGdp">PIB par habitant</button>
+            <button type="button" data-ind="fert" aria-pressed="false" data-i18n="pIndFert" disabled>Enfants par femme</button>
+            <button type="button" data-ind="life" aria-pressed="false" data-i18n="pIndLife" disabled>Espérance de vie</button>
+            <button type="button" data-ind="co2" aria-pressed="false" data-i18n="pIndCo2" disabled>CO₂ par habitant</button>
+            <button type="button" data-ind="urban" aria-pressed="false" data-i18n="pIndUrban" disabled>Population urbaine</button>
           </div>
           <div class="now">
             <button class="primary" id="pPlay" type="button">▶ Lancer</button>
@@ -629,6 +634,7 @@ a.inline{color:inherit;text-underline-offset:3px}
           </div>
           <div class="plegend" id="pLegend"></div>
           <p id="pWorld"></p>
+          <p class="small" id="pNote" hidden></p>
         </div>
         <div class="pcard">
           <div class="place">
@@ -674,7 +680,7 @@ a.inline{color:inherit;text-underline-offset:3px}
       </ul>
     </section>
 
-    <footer><span data-i18n="pFoot">Population&nbsp;: Nations unies, World Population Prospects 2024 (variante médiane, au 1<sup>er</sup> juillet). PIB par habitant&nbsp;: Banque mondiale (Indicateurs du développement dans le monde), puis Fonds monétaire international (<a class="inline" href="https://www.imf.org/en/Publications/WEO">base de données des Perspectives de l'économie mondiale</a>) et scénario de long terme de l'OCDE, raccordés et convertis en dollars internationaux constants de 2021. Fourchettes à 80&nbsp;% calculées à partir des erreurs passées des projections, par le projet <a class="inline" href="https://github.com/fbastin/pib-mondial">pib-mondial</a>. Frontières indicatives (Natural Earth).</span> <span id="pData"></span></footer>
+    <footer><span data-i18n="pFoot">Population&nbsp;: Nations unies, World Population Prospects 2024 (variante médiane, au 1<sup>er</sup> juillet). PIB par habitant&nbsp;: Banque mondiale (Indicateurs du développement dans le monde), puis Fonds monétaire international (<a class="inline" href="https://www.imf.org/en/Publications/WEO">base de données des Perspectives de l'économie mondiale</a>) et scénario de long terme de l'OCDE, raccordés et convertis en dollars internationaux constants de 2021. Fourchettes à 80&nbsp;% calculées à partir des erreurs passées des projections, par le projet <a class="inline" href="https://github.com/fbastin/pib-mondial">pib-mondial</a>. Enfants par femme, espérance de vie, CO₂ par habitant et population urbaine&nbsp;: <a class="inline" href="https://ourworldindata.org">Our World in Data</a> (CC BY), d'après les Nations unies (World Population Prospects 2024, World Urbanization Prospects 2025) et le Global Carbon Project. Frontières indicatives (Natural Earth).</span> <span id="pData"></span></footer>
   </main>
 
   <main class="view" id="view-saisons" hidden>

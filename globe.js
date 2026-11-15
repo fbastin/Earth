@@ -81,7 +81,7 @@ for(ek in EN_F) Site.EN[ek]=EN_F[ek];
 var EN_P={
   pH1:"Population",
   pLede:"How many of us live on Earth, where, and for how much longer will the population keep growing? The globe colours every country from 1950 to 2050. Beyond today these are <b>projections</b>: they come with a range.",
-  pIndAria:"Indicator", pIndPop:"Population", pIndGrowth:"Growth", pIndGdp:"GDP per capita", pYearL:"Year", pNow:"Today", pCountryL:"Country (or click the globe)",
+  pIndAria:"Indicator", pIndPop:"Population", pIndGrowth:"Growth", pIndGdp:"GDP per capita", pIndFert:"Children per woman", pIndLife:"Life expectancy", pIndCo2:"CO₂ per capita", pIndUrban:"Urban population", pYearL:"Year", pNow:"Today", pCountryL:"Country (or click the globe)",
   p1h:"From 2.5 to more than 8 billion",
   p1p:"In 1950 Earth had 2.5 billion inhabitants. Today it has more than 8 billion: the population has more than tripled within a human lifetime. The animation starts again from 1950; watch Asia, then Africa, change colour.",
   p2h:"Very uneven growth",
@@ -93,7 +93,7 @@ var EN_P={
   pM1:"<b>The world population is still growing, but more and more slowly.</b> Its growth rate has been falling since the 1960s.",
   pM2:"<b>A projection is not a certain forecast.</b> It extends trends; its range tells how far it can be trusted.",
   pM3:"<b>A large country is not necessarily a rich one.</b> Population and GDP per capita draw two very different maps.",
-  pFoot:"Population: United Nations, World Population Prospects 2024 (medium variant, as of 1 July). GDP per capita: World Bank (World Development Indicators), then International Monetary Fund (<a class=\"inline\" href=\"https://www.imf.org/en/Publications/WEO\">World Economic Outlook Database</a>) and the OECD long-term scenario, spliced and converted to constant 2021 international dollars. 80% ranges computed from the past errors of projections by the <a class=\"inline\" href=\"https://github.com/fbastin/pib-mondial\">pib-mondial</a> project. Borders are indicative (Natural Earth)."
+  pFoot:"Population: United Nations, World Population Prospects 2024 (medium variant, as of 1 July). GDP per capita: World Bank (World Development Indicators), then International Monetary Fund (<a class=\"inline\" href=\"https://www.imf.org/en/Publications/WEO\">World Economic Outlook Database</a>) and the OECD long-term scenario, spliced and converted to constant 2021 international dollars. 80% ranges computed from the past errors of projections by the <a class=\"inline\" href=\"https://github.com/fbastin/pib-mondial\">pib-mondial</a> project. Children per woman, life expectancy, CO₂ per capita and urban population: <a class=\"inline\" href=\"https://ourworldindata.org\">Our World in Data</a> (CC BY), based on the United Nations (World Population Prospects 2024, World Urbanization Prospects 2025) and the Global Carbon Project. Borders are indicative (Natural Earth)."
 };
 for(ek in EN_P) Site.EN[ek]=EN_P[ek];
 var D={
@@ -145,6 +145,14 @@ var D={
   pVal:["<b>{0}</b>, {1} : {2}{3}.","<b>{0}</b>, {1}: {2}{3}."], pNone:["<b>{0}</b>, {1} : pas de données.","<b>{0}</b>, {1}: no data."],
   pBand:[" Fourchette : de {0} à {1} (8 chances sur 10).", " Range: {0} to {1} (8 chances in 10)."],
   pLegPop:["Habitants","Inhabitants"], pLegGrowth:["Variation de la population en un an","Population change over one year"], pLegGdp:["PIB par habitant, en dollars à parité de pouvoir d'achat","GDP per capita, in dollars at purchasing power parity"],
+  pLegFert:["Enfants par femme","Children per woman"], pLegLife:["Espérance de vie à la naissance, en années","Life expectancy at birth, in years"],
+  pLegCo2:["Émissions de CO₂ par habitant, en tonnes par an","CO₂ emissions per capita, in tonnes a year"], pLegUrban:["Part de la population qui vit en ville","Share of the population living in urban areas"],
+  pUFert:["enfants par femme","children per woman"], pUYears:["ans","years"], pUCo2:["de CO₂ par habitant","of CO₂ per person"], pUUrban:["de population urbaine","urban population"],
+  pNoteFert:["Nombre moyen d'enfants qu'aurait une femme au cours de sa vie avec les taux de natalité de l'année. Autour de 2,1, une génération remplace la précédente.","Average number of children a woman would have over her life at the birth rates of that year. Around 2.1, one generation replaces the previous one."],
+  pNoteLife:["Nombre d'années que vivrait en moyenne un nouveau-né si les risques de décès de l'année restaient les mêmes toute sa vie.","Number of years a newborn would live on average if the risks of dying of that year stayed the same throughout its life."],
+  pNoteCo2:["CO₂ émis par la combustion du charbon, du pétrole et du gaz et par l'industrie, divisé par le nombre d'habitants. Le déboisement n'est pas compté, ni le CO₂ des produits importés.","CO₂ emitted by burning coal, oil and gas and by industry, divided by the number of inhabitants. Deforestation is not counted, nor the CO₂ of imported goods."],
+  pNoteUrban:["Chaque pays définit lui-même ce qu'il appelle une ville : les comparaisons entre pays sont approximatives.","Each country defines for itself what it calls a town: comparisons between countries are approximate."],
+  pDataX:["Données : Our World in Data, d'après {0} ; série mise à jour le {1}.","Data: Our World in Data, based on {0}; series updated on {1}."],
   pNd:["Pas de données","No data"], pM:["M","M"], pMd:["Md","B"], pK:["k","k"],
   pKeyObs:["observé","observed"], pKeyProj:["projection","projection"], pKeyBand:["fourchette à 80 %","80% range"],
   pChartAria:["{0} : {1}, de {2} à {3}","{0}: {1}, {2} to {3}"],
@@ -239,11 +247,11 @@ var prefs={globe:{borders:true,names:true,grid:false,equator:false,circles:false
     prefs.tz.step=clamp(prefs.tz.step|0,0,4);
     ['a','b'].forEach(function(k){var c=prefs.tz[k]; if(!(c&&typeof c.lat==='number'&&typeof c.lon==='number'&&c.n&&c.n.length===2)) prefs.tz[k]=k==='a'?{lat:45.5,lon:-73.57,n:['Montréal','Montreal']}:{lat:48.86,lon:2.35,n:['Paris','Paris']};});
     if(!MODES[prefs.globe.mode]) prefs.globe.mode='';
-    if(d.pop){ if(d.pop.ind==='pop'||d.pop.ind==='growth'||d.pop.ind==='gdp') prefs.pop.ind=d.pop.ind; if(typeof d.pop.year==='number') prefs.pop.year=d.pop.year|0; if(typeof d.pop.iso==='string'&&d.pop.iso.length<=3) prefs.pop.iso=d.pop.iso; }
+    if(d.pop){ if(/^(pop|growth|gdp|fert|life|co2|urban)$/.test(d.pop.ind)) prefs.pop.ind=d.pop.ind; if(typeof d.pop.year==='number') prefs.pop.year=d.pop.year|0; if(typeof d.pop.iso==='string'&&d.pop.iso.length<=3) prefs.pop.iso=d.pop.iso; }
   }catch(e){}
 })();
 function savePrefs(){
-  if(pop.on){ prefs.pop.ind=pop.ind; prefs.pop.year=pop.today?0:pop.year; prefs.pop.iso=pop.iso; try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){} return; }
+  if(pop.on){ prefs.pop.ind=pop.want||pop.ind; prefs.pop.year=pop.today?0:pop.year; prefs.pop.iso=pop.iso; try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){} return; }
   if(tz.on){ prefs.tz.step=tz.step; prefs.tz.a=tz.a; prefs.tz.b=tz.b; try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){} return; }
   var o=lesson.on?prefs.lesson.show:prefs.globe;
   SHOWN.forEach(function(k){o[k]=lesson.on&&lesson.auto[k]?false:opt[k];});      /* ce qu'une étape a allumé n'est pas un choix */
@@ -264,7 +272,7 @@ var sunSt={day:171,hour:12,playing:false};
 var dirty=true, inited=false, gl=null, glCtx=null, glGen=0, frameNo=0, lastT=0;       /* glGen change à chaque perte du contexte WebGL : ce qui a été demandé avant est périmé */
 var eye=[0,0,0], fwd=[0,0,0], rgt=[0,0,0], upv=[0,0,0], eyeD=1, W=1, H=1, DPR=1, aspect=1, VP=new Float32Array(16), SVP=new Float32Array(16);
 var tz={on:false,step:0,a:null,b:null,note:-1,saved:null,n:1}, pins=[];       /* n : nombre de minuits UTC passés dans la leçon, pour qu'une date garde sa couleur */
-var pop={on:false,ind:'pop',year:0,iso:'',today:true,playing:false,acc:0,stop:0,step:-1,saved:null};
+var pop={on:false,want:'',ind:'pop',year:0,iso:'',today:true,playing:false,acc:0,stop:0,step:-1,saved:null};
 var hover=null, pin=null, measure={on:false,pts:[]}, fly=null, zoomTo=null, anchor=null, tourMsg=null;
 var msgEl=$('gMsg'), foot=document.querySelector('.gfoot');
 
@@ -1507,18 +1515,40 @@ function leaveTz(){
    artefact, hors ligne), la copie embarquée sert seule. */
 var PW=0, PH=0, paysPx=null, paysTex=null, paysState=0, paysList=[], paysIdx={};
 var popData=null, popSrc='', popVer=0, popState=0;
+/* Indicateurs d'Our World in Data : data/indicateurs.json, écrit par tools/update_indicators.py. Observés seulement,
+   sans projection ni fourchette. Ajouter un indicateur : sa clé dans RAMP, CUTS, XFMT et les textes pInd…, pLeg…, pNote…,
+   un bouton dans index.html, la clé dans le contrôle des préférences. */
+var xData=null, xState=0;
+function isX(ind){ return ind==='fert'||ind==='life'||ind==='co2'||ind==='urban'; }
+function xOf(ind){ return xData&&xData.indicateurs[ind]||null; }
+function decOf(v){ var a=Math.abs(v); return Math.abs(a-Math.round(a))<1e-9?0:Math.abs(a*10-Math.round(a*10))<1e-9?1:2; }
+var XFMT={       /* val : valeur seule ; unit : ce qui suit dans une phrase ; tick : étiquette courte */
+  fert:{val:function(v){return nf(v,2);}, unit:'pUFert', tick:function(v){return nf(v,decOf(v));}},
+  life:{val:function(v){return nf(v,1)+' '+t('pUYears');}, unit:'', tick:function(v){return nf(v,decOf(v));}},
+  co2:{val:function(v){return nf(v,v<10?2:1)+' t';}, unit:'pUCo2', tick:function(v){return nf(v,decOf(v))+' t';}},
+  urban:{val:function(v){return nf(v,1)+(li?'%':' %');}, unit:'pUUrban', tick:function(v){return nf(v,decOf(v))+(li?'%':' %');}}
+};
+var LEG={pop:'pLegPop',growth:'pLegGrowth',gdp:'pLegGdp',fert:'pLegFert',life:'pLegLife',co2:'pLegCo2',urban:'pLegUrban'};
+var NOTE={fert:'pNoteFert',life:'pNoteLife',co2:'pNoteCo2',urban:'pNoteUrban'};
 var POP_URL='https://raw.githubusercontent.com/fbastin/pib-mondial/main/export/terre.json', POP_LS='terre-population';
 /* Sept classes par indicateur. Population et PIB : une seule teinte, du clair au foncé. Croissance : bleu quand la
    population baisse, gris quand elle est stable, orange quand elle augmente. */
 var RAMP={pop:[[253,233,207],[251,207,154],[248,174,98],[238,138,52],[212,102,26],[168,71,14],[116,48,10]],
           gdp:[[227,238,251],[189,214,243],[143,184,232],[94,150,216],[58,116,192],[35,84,154],[21,58,112]],
-          growth:[[44,95,176],[134,174,230],[184,188,198],[246,198,141],[238,154,74],[207,106,28],[143,61,8]]};
-var CUTS={pop:[1e3,5e3,2e4,5e4,1e5,5e5], gdp:[2e3,5e3,1e4,2e4,4e4,8e4], growth:[-1,-0.25,0.25,1,2,3]};      /* population en milliers */
+          growth:[[44,95,176],[134,174,230],[184,188,198],[246,198,141],[238,154,74],[207,106,28],[143,61,8]],
+          fert:[[242,240,247],[218,218,235],[188,189,220],[158,154,200],[128,125,186],[106,81,163],[74,20,134]],
+          life:[[237,248,233],[199,233,192],[161,217,155],[116,196,118],[65,171,93],[35,139,69],[0,90,50]],
+          co2:[[254,229,217],[252,187,161],[252,146,114],[251,106,74],[239,59,44],[203,24,29],[153,0,13]],
+          urban:[[229,245,241],[191,230,220],[143,211,196],[91,188,171],[47,158,143],[21,122,110],[11,84,76]]};
+var CUTS={pop:[1e3,5e3,2e4,5e4,1e5,5e5], gdp:[2e3,5e3,1e4,2e4,4e4,8e4], growth:[-1,-0.25,0.25,1,2,3],      /* population en milliers */
+          fert:[1.5,2.1,3,4,5,6], life:[45,55,65,70,75,80], co2:[0.2,1,2,5,10,15], urban:[20,35,50,60,70,80]};
 function classOf(ind,v){ var c=CUTS[ind], k=0; while(k<c.length&&v>=c[k]) k++; return k; }
-function popMeta(){ return pop.ind==='gdp'?popData.pib:popData.population; }
+function popMeta(){ return isX(pop.ind)&&xOf(pop.ind)||(pop.ind==='gdp'?popData.pib:popData.population); }
 function curYear(){ var m=popMeta(); return clamp(new Date().getFullYear(),m.debut,m.fin); }
 function valAt(code,ind,y){        /* valeur d'un pays ('*' : le monde) pour une année, ou null */
-  var f=code==='*'?popData.monde:popData.pays[code], a, i; if(!f) return null;
+  var f, a, i;
+  if(isX(ind)){ f=xOf(ind); if(!f) return null; a=code==='*'?f.monde:f.pays[code]; i=y-f.debut; return a&&i>=0&&a[i]!=null?a[i]:null; }
+  f=code==='*'?popData.monde:popData.pays[code]; if(!f) return null;
   if(ind==='gdp'){ a=f.pib; i=y-popData.pib.debut; return a&&i>=0&&a[i]!=null?a[i]:null; }
   a=f.pop; i=y-popData.population.debut; if(!a||i<0||a[i]==null) return null;
   if(ind==='pop') return a[i];
@@ -1526,7 +1556,7 @@ function valAt(code,ind,y){        /* valeur d'un pays ('*' : le monde) pour une
   return a[i]!=null&&a[i-1]?(a[i]/a[i-1]-1)*100:null;
 }
 function bandAt(code,ind,y){       /* fourchette à 80 % [bas, haut], ou null */
-  var f=popData.pays[code]; if(!f||ind==='growth') return null;
+  var f=popData.pays[code]; if(!f||ind==='growth'||isX(ind)) return null;
   var m=ind==='gdp'?popData.pib:popData.population, lo=ind==='gdp'?f.pib_bas:f.pop_bas, hi=ind==='gdp'?f.pib_haut:f.pop_haut;
   if(!lo||!hi||m.fourchette_des==null) return null;
   var i=y-m.fourchette_des; return i>=0&&lo[i]!=null&&hi[i]!=null&&hi[i]>lo[i]?[lo[i],hi[i]]:null;
@@ -1543,11 +1573,13 @@ function popStr(k){                /* population, donnée en milliers */
   return nf(n>=1e4?Math.round(n/1000)*1000:Math.round(n/100)*100,0);
 }
 function valStr(ind,v,bare){
+  if(isX(ind)){ var F=XFMT[ind]; return F.val(v)+(bare||!F.unit?'':' '+t(F.unit)); }
   if(ind==='pop') return popStr(v)+(bare?'':' '+t(v>=1000?'pInhOf':'pInh'));
   if(ind==='gdp'){ var r=nf(v>=1000?Math.round(v/100)*100:Math.round(v/10)*10,0); return li?'$'+r:r+' $'; }
   var s=(v<0?'−':'+')+nf(Math.abs(v),2)+(li?'%':' %'); return bare?s:s+' '+t('pPerYear');
 }
 function tickStr(ind,v){           /* étiquette courte : légende et axe */
+  if(isX(ind)) return XFMT[ind].tick(v);
   if(v===0&&ind!=='growth') return '0';
   if(ind==='growth') return (v<0?'−':v>0?'+':'')+nf(Math.abs(v),Math.abs(v)%1?(Math.abs(v*10)%1?2:1):0)+(li?'%':' %');
   if(ind==='gdp') return v>=1000?nf(v/1000,(v/1000)%1?1:0)+' '+t('pK'):nf(v,0);
@@ -1590,6 +1622,26 @@ function loadPop(){
     });
   }).catch(function(){});
 }
+function okX(d){             /* forme de data/indicateurs.json ; un indicateur mal formé est écarté, les autres servent */
+  if(!d||d.format!==1||!d.indicateurs||typeof d.indicateurs!=='object') return false;
+  function serie(a,n){ if(!Array.isArray(a)||a.length!==n) return false; for(var i=0;i<n;i++) if(a[i]!==null&&!(typeof a[i]==='number'&&isFinite(a[i]))) return false; return true; }
+  var any=false;
+  for(var k in d.indicateurs){
+    var f=d.indicateurs[k], ok=isX(k)&&!!f&&typeof f.debut==='number'&&typeof f.fin==='number'&&f.fin>f.debut&&f.fin-f.debut<1000&&!!f.pays&&typeof f.pays==='object', n, c;
+    if(ok){ n=f.fin-f.debut+1; ok=serie(f.monde,n); for(c in f.pays) if(ok&&!serie(f.pays[c],n)) ok=false; }
+    if(ok){ f.observe_jusqua=f.fin; any=true; } else delete d.indicateurs[k];
+  }
+  return any;
+}
+function loadX(){
+  if(xState) return;
+  xState=1;
+  fetch('data/indicateurs.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(d){
+    if(!okX(d)) throw 0;
+    xData=d; xState=2; pal.key='';
+    if(pop.on){ if(pop.want&&xOf(pop.want)){ setInd(pop.want); } pop.want=''; renderP(); hud={}; dirty=true; }
+  }).catch(function(){ xState=3; pop.want=''; if(pop.on) renderP(); });
+}
 function loadPays(){
   if(paysState||!inited||!(gl||soft)) return;
   paysState=1; ensurePal();
@@ -1602,6 +1654,7 @@ function loadPays(){
     paysState=2; pal.key=''; fillCountries(); renderP(); hud={}; dirty=true;
   }).catch(function(){paysState=0;});
 }
+function dateLong(dt){ return li?MONTHS[1][dt.getMonth()]+' '+dt.getDate()+', '+dt.getFullYear():dt.getDate()+(dt.getDate()>1?'':'er')+' '+MONTHS[0][dt.getMonth()]+' '+dt.getFullYear(); }
 function fixYear(){ if(!popData) return; var m=popMeta(); pop.year=pop.today?curYear():clamp(pop.year,m.debut,m.fin); }
 function paysName(code){ var k=paysIdx[code]; return k!==undefined?paysList[k][1+li]:(popData&&popData.pays[code]&&popData.pays[code].nom)||code; }
 function fillCountries(){          /* liste des pays qui ont des données, dans l'ordre alphabétique de la langue */
@@ -1615,6 +1668,7 @@ function fillCountries(){          /* liste des pays qui ont des données, dans 
 function popKind(y){               /* observé, estimé ou projeté */
   var m=popMeta();
   if(y<=m.observe_jusqua) return t('pObs');
+  if(isX(pop.ind)) return t('pObs');
   if(pop.ind==='gdp') return t(y<=m.horizon_fmi?'pImf':'pProj');
   return t(y<=new Date().getFullYear()?'pEst':'pProj');
 }
@@ -1634,7 +1688,7 @@ function chartP(){
   if(vmax===vmin) vmax=vmin+1;
   var Wc=360, Hc=190, L=46, R=12, T=10, B=24, st=niceStep((vmax-vmin)/3.2), top=Math.ceil(vmax/st-1e-9)*st, bot=Math.floor(vmin/st+1e-9)*st;
   function X(yr){return L+(yr-y0)/(y1-y0)*(Wc-L-R);} function Y(val){return T+(top-val)/(top-bot)*(Hc-T-B);}
-  var h='<svg viewBox="0 0 '+Wc+' '+Hc+'" role="img" aria-label="'+esc(tf('pChartAria',code==='*'?t('pWorld'):paysName(code),t(ind==='pop'?'pLegPop':ind==='gdp'?'pLegGdp':'pLegGrowth'),y0,y1))+'">', g;
+  var h='<svg viewBox="0 0 '+Wc+' '+Hc+'" role="img" aria-label="'+esc(tf('pChartAria',code==='*'?t('pWorld'):paysName(code),t(LEG[ind]),y0,y1))+'">', g;
   for(g=bot;g<=top+st*1e-6;g+=st){ h+='<line class="grid" x1="'+L+'" x2="'+(Wc-R)+'" y1="'+Y(g).toFixed(1)+'" y2="'+Y(g).toFixed(1)+'"/><text x="'+(L-6)+'" y="'+(Y(g)+3.5).toFixed(1)+'" text-anchor="end">'+tickStr(ind,Math.abs(g)<st*1e-6?0:g)+'</text>'; }
   [y0,2000,y1].forEach(function(yr,i){ if(yr>y0+15&&yr<y1-15||i!==1) h+='<text x="'+X(yr).toFixed(1)+'" y="'+(Hc-7)+'" text-anchor="'+(i===0?'start':i===2?'end':'middle')+'">'+yr+'</text>'; });
   function path(from,to,arr){ var d='', pen=false; for(var yr=from;yr<=to;yr++){ var q=arr[yr-y0]; if(q===null||q===undefined){pen=false; continue;} d+=(pen?'L':'M')+X(yr).toFixed(1)+' '+Y(q).toFixed(1); pen=true; } return d; }
@@ -1677,7 +1731,9 @@ function chartYear(ev){            /* année sous le pointeur */
   box.addEventListener('pointerleave',function(){ if(down) return; var ln=$('pHovLine'); if(ln) ln.setAttribute('visibility','hidden'); $('pHover').textContent=chart?t('pHoverHint'):''; });
 })();
 function renderP(){
-  document.querySelectorAll('#pInd button').forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-ind')===pop.ind));});
+  document.querySelectorAll('#pInd button').forEach(function(b){
+    var k=b.getAttribute('data-ind'); b.setAttribute('aria-pressed',String(k===pop.ind)); b.disabled=isX(k)&&!xOf(k);
+  });
   document.querySelectorAll('#pSteps li').forEach(function(el){
     var on=+el.getAttribute('data-step')===pop.step; el.classList.toggle('on',on);
     if(on) el.setAttribute('aria-current','step'); else el.removeAttribute('aria-current');
@@ -1687,10 +1743,11 @@ function renderP(){
   var m=popMeta(), ind=pop.ind, sl=$('pSlider'), y=pop.year, c=CUTS[ind], w, v, b;
   sl.min=m.debut; sl.max=m.fin; sl.value=y; sl.setAttribute('aria-valuetext',y+', '+popKind(y));
   $('pYear').textContent=y; $('pKind').textContent=popKind(y);
-  $('pLegend').innerHTML='<span>'+t(ind==='pop'?'pLegPop':ind==='gdp'?'pLegGdp':'pLegGrowth')+'</span><div class="bar">'+RAMP[ind].map(function(q){return '<i style="background:rgb('+q.join(',')+')"></i>';}).join('')+'</div>'+
+  $('pLegend').innerHTML='<span>'+t(LEG[ind])+'</span><div class="bar">'+RAMP[ind].map(function(q){return '<i style="background:rgb('+q.join(',')+')"></i>';}).join('')+'</div>'+
     '<div class="ticks">'+RAMP[ind].map(function(q,i){return '<span>'+(i<c.length?tickStr(ind,c[i]):'')+'</span>';}).join('')+'</div><span class="nd"><i></i>'+t('pNd')+'</span>';
   w=ind==='gdp'?null:valAt('*',ind,y);
   $('pWorld').innerHTML=w===null?'':tf('pWorldTxt',y,valStr(ind,w));
+  $('pNote').hidden=!NOTE[ind]; $('pNote').textContent=NOTE[ind]?t(NOTE[ind]):'';
   if($('pCountry').value!==pop.iso) $('pCountry').value=pop.iso;
   if(!pop.iso) $('pLive').textContent=t(ind==='gdp'?'pPick':'pPickW');
   else{
@@ -1698,12 +1755,11 @@ function renderP(){
     $('pLive').innerHTML=v===null?tf('pNone',esc(paysName(pop.iso)),y):tf('pVal',esc(paysName(pop.iso)),y,valStr(ind,v),y>m.observe_jusqua?' ('+popKind(y)+')':'')+(b?tf('pBand',valStr(ind,b[0],true),valStr(ind,b[1],true)):'');
   }
   chartP();
-  var dt=new Date(popData.version), ds=dt.getDate()+(li||dt.getDate()>1?'':'er')+' '+MONTHS[li][dt.getMonth()]+' '+dt.getFullYear();
-  if(li) ds=MONTHS[1][dt.getMonth()]+' '+dt.getDate()+', '+dt.getFullYear();
-  $('pData').textContent=tf(popSrc==='remote'?'pDataRemote':'pDataLocal',ds);
+  if(isX(ind)){ var xi=xOf(ind), xd=new Date(/^\d{4}-\d\d-\d\d$/.test(xi.maj||'')?xi.maj+'T12:00':xi.maj||xData.version);       /* date seule : midi, pour ne pas reculer d'un jour selon le fuseau */ $('pData').textContent=tf('pDataX',xi.source||'Our World in Data',isNaN(xd)?'—':dateLong(xd)); }
+  else $('pData').textContent=tf(popSrc==='remote'?'pDataRemote':'pDataLocal',dateLong(new Date(popData.version)));
   if(pop.on){ var k=pop.iso?paysIdx[pop.iso]:undefined; pins=k===undefined?[]:[{v:ll2v(paysList[k][3],paysList[k][4]),lat:paysList[k][3],lon:paysList[k][4],n:paysList[k][1+li],color:'#ffffff'}]; }
 }
-function setInd(ind){ pop.ind=ind; fixYear(); pal.key=''; }
+function setInd(ind){ if(isX(ind)&&!xOf(ind)) ind='pop'; pop.ind=ind; fixYear(); pal.key=''; }
 function popTap(x,y){              /* un clic sur le globe choisit le pays */
   var P=pick(x,y); if(!P||!popData) return;
   var g=v2ll(P), k=paysAt(g.lat,g.lon), code=k>=0?paysList[k][0]:'';
@@ -1726,7 +1782,7 @@ $('pSteps').addEventListener('click',function(ev){
   var r=stage.getBoundingClientRect(); if(r.bottom<120||r.top>window.innerHeight-120) stage.scrollIntoView({block:'nearest',behavior:reduce?'auto':'smooth'});
 });
 $('pInd').addEventListener('click',function(ev){
-  var b=ev.target.closest('button[data-ind]'); if(!b||!popData) return;
+  var b=ev.target.closest('button[data-ind]'); if(!b||b.disabled||!popData) return;
   pop.step=-1; pop.playing=false; setInd(b.getAttribute('data-ind')); renderP(); hud={}; dirty=true; savePrefs();
 });
 $('pPlay').addEventListener('click',function(){
@@ -1748,11 +1804,12 @@ function enterPop(){
   pop.saved={cam:{lat:cam.lat,lon:cam.lon,range:cam.range,heading:cam.heading,tilt:cam.tilt},pin:pin};
   pop.on=true; pop.step=-1; pop.playing=false; pop.acc=0;
   pop.ind=prefs.pop.ind; pop.today=!prefs.pop.year; pop.year=prefs.pop.year; pop.iso=prefs.pop.iso;
+  pop.want=''; if(isX(pop.ind)&&!xOf(pop.ind)){ pop.want=xState===3?'':pop.ind; pop.ind='pop'; }       /* indicateur mémorisé pas encore chargé : on y revient à son arrivée */
   $('gPanel').hidden=true; $('gLayers').setAttribute('aria-expanded','false');
   stopMotion(); if(measure.on) setMeasure(false); tourMsg=null; showMsg(''); pin=null; sunSt.playing=false;
   setOpt('sun',false); ['grid','equator','circles','axis'].forEach(function(k){setOpt(k,false);}); setOpt('borders',true); setOpt('names',true);
   resize(); cam.heading=0; cam.tilt=0; cam.range=homeRange(); cam.lat=20; cam.lon=15;
-  loadPays(); loadPop(); fixYear(); fillCountries(); renderP(); hud={}; dirty=true;
+  loadPays(); loadPop(); loadX(); fixYear(); fillCountries(); renderP(); hud={}; dirty=true;
 }
 function leavePop(){
   var sv=pop.saved; savePrefs();
