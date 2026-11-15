@@ -238,6 +238,8 @@ class Page:
             elif m == "Network.requestWillBeSent":
                 demandes[p["requestId"]] = p["request"]["url"]
             elif m == "Network.responseReceived" and p["response"]["status"] >= 400:
+                if p["response"]["url"].endswith("/favicon.ico"):      # demandé d'office par Chrome ; le site n'en a pas
+                    continue
                 vus.append("HTTP %d : %s" % (p["response"]["status"], p["response"]["url"]))
             elif m == "Network.loadingFailed" and not p.get("canceled") and p.get("blockedReason") != "inspector":
                 vus.append("échec réseau (%s) : %s" % (p.get("errorText"), demandes.get(p["requestId"], "?")))
