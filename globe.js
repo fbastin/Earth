@@ -64,7 +64,7 @@ var EN_F={
   f2h:"Twenty-four zones of 15°",
   f2p:"The solution, adopted in the 19th century with railways and the telegraph: divide the Earth into 24 slices of 15° of longitude. Within a slice, everyone uses the same time. From one slice to the next going east, the clock moves forward one hour. The starting slice is that of the Greenwich meridian: its time is called UTC.",
   f3h:"Real zones follow borders",
-  f3p:"In practice each country chooses its time. The limits therefore follow borders rather than meridians, and a few countries use an offset of half an hour or a quarter of an hour. Hover over the globe to read the time at each place.",
+  f3p:"In practice each country chooses its time. The limits therefore follow borders rather than meridians, and a few countries use an offset of half an hour or a quarter of an hour. Hover over the globe, or touch it, to read the time at each place.",
   f4h:"What time is it elsewhere?",
   f4p:"Pick two cities. The gap between their times is the gap between their offsets from UTC. These are normal legal times: daylight saving time, which adds an hour for part of the year in some countries, is not counted.",
   f5h:"The International Date Line",
@@ -120,7 +120,7 @@ var D={
   turn:["un tour en {0}","one turn in {0}"], secs:["{0} s","{0} s"], mins:["{0} min","{0} min"],
   fLive1:["Il est midi au Soleil sur le méridien {0}. À 15° plus à l'est, midi est passé depuis une heure ; à 15° plus à l'ouest, il faut encore l'attendre une heure.","It is solar noon on the {0} meridian. 15° farther east, noon was an hour ago; 15° farther west, it is still an hour away."],
   fLive2:["Fuseau de Greenwich : {0}. Chaque fuseau vers l'est ajoute une heure, chaque fuseau vers l'ouest en retire une. Les heures sont écrites le long de l'équateur.","Greenwich zone: {0}. Each zone to the east adds an hour, each zone to the west takes one away. The times are written along the equator."],
-  fLive3:["Chaque couleur est un fuseau. Survolez le globe : l'heure de l'endroit s'affiche en bas à gauche.","Each colour is a zone. Hover over the globe: the local time appears at the bottom left."],
+  fLive3:["Chaque couleur est un fuseau. Survolez le globe, ou touchez-le : l'heure de l'endroit s'affiche en bas à gauche.","Each colour is a zone. Hover over the globe, or touch it: the local time appears at the bottom left."],
   fCity:["<b>{0}</b> : {1} ({2})","<b>{0}</b>: {1} ({2})"],
   fAhead:["{0} a {1} d'avance sur {2}.","{0} is {1} ahead of {2}."], fSame:["Les deux villes ont la même heure.","Both cities have the same time."],
   fNoTz:["Chargement des fuseaux…","Loading time zones…"],
@@ -241,6 +241,8 @@ var prefs={globe:{borders:true,names:true,grid:false,equator:false,circles:false
     var d=JSON.parse(localStorage.getItem(PREF_KEY)||'null'); if(!d) return;
     ['globe','lesson','tz'].forEach(function(g){ if(d[g]) for(var k in prefs[g]) if(d[g][k]!==undefined&&typeof d[g][k]===typeof prefs[g][k]||(prefs[g][k]===null&&d[g][k]!==undefined)) prefs[g][k]=d[g][k]; });
     var L=prefs.lesson; L.step=clamp(L.step|0,0,4); L.speed=clamp(L.speed|0,0,6);
+    var S0={axis:true,equator:true,circles:false,grid:false,borders:true,names:true};
+    if(!L.show||typeof L.show!=='object'||Array.isArray(L.show)) L.show=S0; else for(var sk in S0) if(typeof L.show[sk]!=='boolean') L.show[sk]=S0[sk];
     if(L.day!==null) L.day=clamp(L.day|0,0,364);
     if(L.place&&!(typeof L.place.lat==='number'&&typeof L.place.lon==='number'&&L.place.n&&L.place.n.length===2)){L.place=null;}
     if(!(L.city>=0&&L.city<6)) L.city=L.place?-1:0;
@@ -252,14 +254,14 @@ var prefs={globe:{borders:true,names:true,grid:false,equator:false,circles:false
   }catch(e){}
 })();
 function savePrefs(){
+  prefs.globe.mode=modeChosen?mode:''; if(!soft) prefs.globe.ex=opt.ex;
   if(pop.on){ prefs.pop.ind=pop.want||pop.ind; prefs.pop.year=pop.today?0:pop.year; prefs.pop.iso=pop.iso; try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){} return; }
   if(tz.on){ prefs.tz.step=tz.step; prefs.tz.a=tz.a; prefs.tz.b=tz.b; try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){} return; }
   var o=lesson.on?prefs.lesson.show:prefs.globe;
   SHOWN.forEach(function(k){o[k]=lesson.on&&lesson.auto[k]?false:opt[k];});      /* ce qu'une étape a allumé n'est pas un choix */
   if(lesson.on){
     var L=prefs.lesson; L.step=lesson.step; L.day=lesson.today?null:sunSt.day; L.speed=Math.max(0,SPEEDS.indexOf(speed)); L.ecl=lesson.ecl; L.city=lesson.city; L.place=lesson.place;
-  } else { prefs.globe.sun=opt.sun; prefs.globe.tz=opt.tz; if(!soft) prefs.globe.ex=opt.ex; }
-  prefs.globe.mode=modeChosen?mode:'';
+  } else { prefs.globe.sun=opt.sun; prefs.globe.tz=opt.tz; }
   try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch(e){}
 }
 
@@ -283,9 +285,10 @@ function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]}
 function cross(a,b){return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];}
 function norm(a){var l=Math.hypot(a[0],a[1],a[2])||1; return [a[0]/l,a[1]/l,a[2]/l];}
 
-var busyMsg=false;
+var busyMsg=false, msgKey='';
+function showKey(key,bad){ showMsg(t(key),bad); msgKey=key; }       /* message tiré des textes : il suit la langue */
 function showMsg(html,bad){
-  busyMsg=false;
+  busyMsg=false; msgKey='';
   if(!html){msgEl.hidden=true; dirty=true; return;}
   msgEl.innerHTML=html; msgEl.hidden=false; msgEl.classList.toggle('bad',!!bad); dirty=true;
 }
@@ -435,7 +438,7 @@ function loadTile(tl){
     if(tl.L===0){ stage.removeAttribute('aria-busy'); if(busyMsg){busyMsg=false; showMsg('');} }
   }).catch(function(){
     if(gen!==glGen) return;
-    tl.state=3; if(tl.L===0){ showMsg(t('noData'),true); busyMsg=true; }       /* busyMsg : le message s'efface quand l'image arrive enfin */
+    tl.state=3; if(tl.L===0){ showKey('noData',true); busyMsg=true; }       /* busyMsg : le message s'efface quand l'image arrive enfin */
     tl.fails=(tl.fails||0)+1;        /* nouvel essai après 2, 4, 8… secondes (60 au plus), si la tuile est encore demandée */
     setTimeout(function(){ if(gen===glGen&&tl.state===3){ tl.state=0; dirty=true; } },retryDelay(tl.fails));
   }).then(function(){ loading--; dirty=true; });
@@ -792,8 +795,9 @@ function syncSun(){
 }
 function setNow(){
   var d=new Date(), y0=Date.UTC(d.getUTCFullYear(),0,1);
-  sunSt.day=clamp(Math.floor((d.getTime()-y0)/864e5),0,364);
-  if(d.getUTCMonth()>1&&new Date(d.getUTCFullYear(),1,29).getMonth()===1) sunSt.day=Math.max(0,sunSt.day-1);   /* année bissextile */
+  var n=Math.floor((d.getTime()-y0)/864e5);
+  if(d.getUTCMonth()>1&&new Date(d.getUTCFullYear(),1,29).getMonth()===1) n--;   /* année bissextile : le calendrier de la page a 365 jours */
+  sunSt.day=clamp(n,0,364);
   sunSt.hour=d.getUTCHours()+d.getUTCMinutes()/60;
 }
 
@@ -898,7 +902,7 @@ function softLoad(L,c,r){
     softGrid[L][tl.i]=pixelsOf(bmp); tl.state=2; softBytes+=tl.bytes;
     if(L===0){ stage.removeAttribute('aria-busy'); if(busyMsg){busyMsg=false; showMsg('');} }
   }).catch(function(){
-    tl.state=3; if(L===0){ showMsg(t('noData'),true); busyMsg=true; }
+    tl.state=3; if(L===0){ showKey('noData',true); busyMsg=true; }
     softFails[key]=(softFails[key]||0)+1;        /* la tuile est oubliée après un délai : elle sera redemandée si elle sert encore */
     setTimeout(function(){ if(softTiles.get(key)===tl){ softTiles.delete(key); dirty=true; } },retryDelay(softFails[key]));
   }).then(function(){softLoading--; dirty=true;});
@@ -1194,6 +1198,7 @@ glc.addEventListener('pointerdown',handlers.pointerdown=function(ev){
   var p=xy(ev); glc.focus({preventScroll:true});
   try{glc.setPointerCapture(ev.pointerId);}catch(e){}
   ptrs.set(ev.pointerId,p); stopMotion(); closePanels();
+  if(ev.pointerType!=='mouse'&&hover){ hover=null; dirty=true; }       /* l'endroit désigné par un appui précédent */
   if(ptrs.size===1){
     clampCam(); updateCam();
     drag={orbit:ev.button===2||ev.shiftKey||ev.ctrlKey, x0:p.x,y0:p.y,lx:p.x,ly:p.y, P:pick(p.x,p.y), moved:false};
@@ -1238,6 +1243,7 @@ function endPtr(ev){
       if(measure.on) addMeasure(p.x,p.y);
       else if(now-lastClick<350){ zoomBy(0.45,p.x,p.y); now=0; }
       else if(pop.on) popTap(p.x,p.y);
+      else if(tz.on&&ev.pointerType!=='mouse'){ hover=p; dirty=true; }       /* écran tactile : l'appui tient lieu de survol */
       lastClick=now;
     }
   }
@@ -1245,7 +1251,7 @@ function endPtr(ev){
 }
 handlers.pointerup=handlers.pointercancel=endPtr;
 glc.addEventListener('pointerup',endPtr); glc.addEventListener('pointercancel',endPtr);
-glc.addEventListener('pointerleave',handlers.pointerleave=function(){ if(hover){hover=null; dirty=true;} });
+glc.addEventListener('pointerleave',handlers.pointerleave=function(ev){ if(hover&&ev.pointerType==='mouse'){hover=null; dirty=true;} });       /* au doigt, l'endroit touché reste désigné */
 glc.addEventListener('contextmenu',handlers.contextmenu=function(ev){ev.preventDefault();});
 glc.addEventListener('wheel',handlers.wheel=function(ev){
   ev.preventDefault();
@@ -2008,9 +2014,11 @@ opt.ex=prefs.globe.ex; $('gRelief').value=opt.ex; $('gReliefOut').textContent='�
 /* ---------- langue et vue ---------- */
 Site.onLang(function(l){
   li=l==='en'?1:0; hud={}; widths.clear();
+  $('pHover').textContent='';
   renderTours(); syncSun(); renderJ(); renderF(); showMode(); fillCountries(); renderP();
-  if(pin&&pin.src) pin.n=pin.src.n[li];
+  if(pin&&pin.src){ if(qIn.value===pin.src.n[1-li]) qIn.value=pin.src.n[li]; pin.n=pin.src.n[li]; }
   if(measure.on) measureMsg(); else if(tourMsg) showMsg(tourMsg[7+li]);
+  else if(msgKey){ var mb=busyMsg; showKey(msgKey,msgEl.classList.contains('bad')); busyMsg=mb; }
   if(!qPop.hidden) renderSearch();
   dirty=true;
 });
@@ -2058,7 +2066,7 @@ function glLost(){
   tiles.clear(); usedBytes=0; ibos={};
   for(var k in lineSets){ lineSets[k].vao=lineSets[k].vbo=null; }
   nightTex=tzTexReal=tzTexIdeal=paysTex=palTex=null; palKey=''; pal.key='';
-  showMsg(t('lost'),true);
+  showKey('lost',true);
 }
 function glBack(){
   gl=glCtx;
@@ -2069,11 +2077,11 @@ function glBack(){
   if(tzPx) tzTexReal=lumTex(tzPx,TZW,TZH);
   if(paysPx) paysTex=lumTex(paysPx,PW,PH);
   loadNight();
-  showMsg(t('loading')); busyMsg=true; stage.setAttribute('aria-busy','true'); hud={}; dirty=true;
+  showKey('loading'); busyMsg=true; stage.setAttribute('aria-busy','true'); hud={}; dirty=true;
 }
 function init(){
   inited=true;
-  setNow(); sunSt.hour=Math.round(sunSt.hour*4)/4;
+  setNow(); sunSt.hour=Math.floor(sunSt.hour*4)/4;
   gl=glCtx=getGL();
   if(gl) try{ setupGL(); }catch(e){ gl=null; }
   if(!gl){        /* pas de WebGL utilisable : rendu par le processeur, sur une toile neuve (l'ancienne a pu garder un contexte 3D) */
@@ -2081,7 +2089,7 @@ function init(){
     ['pointerdown','pointermove','pointerup','pointercancel','pointerleave','contextmenu','keydown'].forEach(function(n){c2.addEventListener(n,handlers[n]);});
     c2.addEventListener('wheel',handlers.wheel,{passive:false});
     glc=c2; sctx=glc.getContext('2d');
-    if(!sctx){showMsg(t('noGL'),true); return;}
+    if(!sctx){showKey('noGL',true); return;}
     soft=true; opt.ex=0;
     if(!modeChosen&&mode==='full'){ mode='std'; M=MODES.std; }       /* sans carte graphique, on part moins chargé */
     showMode();
@@ -2091,7 +2099,7 @@ function init(){
     glc.addEventListener('webglcontextrestored',glBack);
   }
 
-  showMsg(t('loading')); busyMsg=true;
+  showKey('loading'); busyMsg=true;
   resize(); cam.range=homeRange();
   buildGraticule();
   fetch('tiles/levels.json').then(function(r){return r.json()}).then(function(m){ if(m&&m.length&&m[0].cols) meta=m; }).catch(function(){}).then(function(){dirty=true;});

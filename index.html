@@ -66,6 +66,8 @@ header h1{grid-column:1;grid-row:1}
 figure{margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
 canvas{display:block;width:100%;aspect-ratio:100/66;background:var(--space);border-radius:10px}
 #orbit{cursor:grab;touch-action:pan-y}
+.orbitfig{position:relative}
+#orbitGrip{position:absolute;left:0;top:0;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;touch-action:none;cursor:grab}
 figcaption{font-size:.875rem;color:var(--ink-2)}
 
 .datebar{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:10px 16px}
@@ -280,6 +282,12 @@ a.inline{color:inherit;text-underline-offset:3px}
 .pkey i.d{border-top-style:dashed}
 .pkey i.b{height:10px;border:0;background:var(--s2);opacity:.22}
 
+@media (pointer:coarse){             /* au doigt : boutons d'au moins 40 px de haut */
+  button,.tabs a{min-height:40px}
+  .tabs a{display:inline-flex;align-items:center}
+  .langs button{min-height:36px;padding-inline:14px}
+  .gtools button{min-height:0}
+}
 @media (max-width:820px){            /* téléphone, tablette en portrait : les onglets passent sous le nom du site */
   .site .langs{margin-left:auto}
   .tabs{order:3;flex:1 0 100%}
@@ -551,7 +559,7 @@ a.inline{color:inherit;text-underline-offset:3px}
           </li>
           <li data-step="2">
             <h3 data-i18n="f3h">Les vrais fuseaux suivent les frontières</h3>
-            <p data-i18n="f3p">En pratique, chaque pays choisit son heure. Les limites suivent donc les frontières plutôt que les méridiens, et quelques pays prennent un décalage d'une demi-heure ou d'un quart d'heure. Survolez le globe pour lire l'heure de chaque endroit.</p>
+            <p data-i18n="f3p">En pratique, chaque pays choisit son heure. Les limites suivent donc les frontières plutôt que les méridiens, et quelques pays prennent un décalage d'une demi-heure ou d'un quart d'heure. Survolez le globe, ou touchez-le, pour lire l'heure de chaque endroit.</p>
             <div class="chips" id="fCases"></div>
             <button type="button" class="go" data-i18n="jGo">Montrer sur le globe</button>
           </li>
@@ -690,8 +698,9 @@ a.inline{color:inherit;text-underline-offset:3px}
   </header>
 
   <section class="stage" aria-label="Simulation">
-    <figure>
+    <figure class="orbitfig">
       <canvas id="orbit" aria-label="La Terre sur son orbite autour du Soleil" data-i18n-attr="aria-label:orbitAria"></canvas>
+      <span id="orbitGrip" aria-hidden="true"></span>
       <figcaption data-i18n="capOrbit">L'orbite vue de biais. L'axe pointe toujours du même côté. Faites glisser la Terre pour changer de date. Tailles et distances ne sont pas à l'échelle.</figcaption>
     </figure>
     <figure>
@@ -852,7 +861,8 @@ var Site=(function(){
   S.setLang=function(l,quiet){
     if(l===S.lang) return;
     S.lang=l; render(); fire(langCbs,l);
-    if(!quiet){try{localStorage.setItem(LS,l);}catch(e){} writeHash();}
+    try{localStorage.setItem(LS,l);}catch(e){}       /* la langue affichée est celle retenue, même atteinte par « Retour » */
+    if(!quiet) writeHash();
   };
   S.go=function(v,quiet){
     if(v===S.view) return;
@@ -877,6 +887,7 @@ var Site=(function(){
     $('lang-fr').addEventListener('click',function(){S.setLang('fr');});
     $('lang-en').addEventListener('click',function(){S.setLang('en');});
     document.addEventListener('click',function(ev){      /* liens internes, y compris ceux réécrits au changement de langue */
+      if(ev.button||ev.ctrlKey||ev.metaKey||ev.shiftKey||ev.altKey) return;       /* nouvel onglet, nouvelle fenêtre : au navigateur */
       var a=ev.target.closest&&ev.target.closest('a[data-view]'); if(!a) return;
       ev.preventDefault(); S.go(a.getAttribute('data-view'));
     });
@@ -939,6 +950,7 @@ var EN={
 var D={
   play:["▶ Lancer","▶ Play"], pause:["❚❚ Pause","❚❚ Pause"],
   equator:["équateur","equator"],
+  eqSeason:["sur l'équateur, entre les deux hémisphères","on the equator, between the two hemispheres"],
   hemiN:["hémisphère Nord","Northern Hemisphere"], hemiS:["hémisphère Sud","Southern Hemisphere"],
   noSeason:["aucune <small>l'axe est droit</small>","none <small>the axis is upright</small>"],
   nightLen:["nuit : {0}","night: {0}"],
@@ -1117,7 +1129,7 @@ var MW=1024, MH=512, maskL=new Uint8Array(MW*MH), maskI=new Uint8Array(MW*MH);
 })();
 
 /* ---------- toiles ---------- */
-var orbitC=$('orbit'), globeC=$('globe'), octx=orbitC.getContext('2d'), gctx=globeC.getContext('2d');
+var grip=$('orbitGrip'), orbitC=$('orbit'), globeC=$('globe'), octx=orbitC.getContext('2d'), gctx=globeC.getContext('2d');
 var off=document.createElement('canvas'), offctx=off.getContext('2d'), gImg=null;
 var FONT='"Instrument Sans",system-ui,sans-serif';
 var STARS=[]; (function(){var s=12345; function rnd(){s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff;} for(var i=0;i<90;i++) STARS.push([rnd(),rnd(),0.25+0.6*rnd(),rnd()<0.15?1.4:0.8]);})();
@@ -1171,6 +1183,7 @@ function drawOrbit(){
   ctx.translate(p.x,p.y); ctx.rotate(Math.atan2(p.y-cy,p.x-cx)); ctx.fillStyle='rgba(6,9,24,0.78)'; ctx.fillRect(0,-re,re,2*re);
   ctx.restore();
   ctx.strokeStyle='rgba(255,255,255,0.9)'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(p.x,p.y,re,0,TAU); ctx.stroke();
+  if(grip.style.left!==p.x+'px'||grip.style.top!==p.y+'px'){ grip.style.left=p.x+'px'; grip.style.top=p.y+'px'; }
   ctx.font='600 '+fpx(W,11.5)+'px '+FONT; ctx.fillStyle='#fff'; ctx.fillText('N',p.x+ax*(L+fpx(W,9)),p.y+ay*(L+fpx(W,9)));
   // libellés des quatre dates, tracés en dernier avec un liseré sombre pour rester lisibles quand la Terre passe dessous
   ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round'; ctx.lineWidth=3; ctx.strokeStyle='rgba(8,12,27,0.9)';
@@ -1515,7 +1528,7 @@ function update(){
   $('tiltOut').textContent=ts; tiltIn.value=tilt; tiltIn.setAttribute('aria-valuetext',ts);
   if(document.activeElement!==placeIn) placeIn.value=committedText();
   var q=seasonIdx(di), north=lat>=0, sN=SEASONS[li][q], sS=SEASONS[li][(q+2)%4], flat=tilt<0.05;
-  $('mSeason').innerHTML=flat ? t('noSeason') : (north?sN:sS)+' <small>'+t(north?'hemiN':'hemiS')+'</small>';
+  $('mSeason').innerHTML=flat ? t('noSeason') : Math.abs(lat)<0.25 ? '— <small>'+t('eqSeason')+'</small>' : (north?sN:sS)+' <small>'+t(north?'hemiN':'hemiS')+'</small>';
   $('mDay').innerHTML=L.graze ? '— <small>'+t('onHorizon')+'</small>' : dur(L.hours)+' <small>'+tf('nightLen',dur(24-L.hours))+'</small>';
   $('mNoon').innerHTML=(L.graze||Math.abs(L.noon)<0.05) ? '0° <small>'+t('onHorizon')+'</small>'
     : L.noon>0 ? nf(L.noon,1)+'° <small>'+t('above')+'</small>' : nf(-L.noon,1)+'° <small>'+t('below')+'</small>';
@@ -1570,7 +1583,12 @@ function orbitSet(ev){
 }
 orbitC.addEventListener('pointerdown',function(ev){orbitDrag=true; try{orbitC.setPointerCapture(ev.pointerId);}catch(e){} stop(); orbitSet(ev); orbitC.style.cursor='grabbing';});
 orbitC.addEventListener('pointermove',function(ev){if(orbitDrag) orbitSet(ev);});
-function endOrbit(){orbitDrag=false; orbitC.style.cursor='';}
+function endOrbit(){orbitDrag=false; orbitC.style.cursor=''; grip.style.cursor='';}
+/* Sur la Terre elle-même, le geste n'est jamais pris pour un défilement de la page : on peut faire tout le tour au doigt.
+   Ailleurs sur la toile, un geste vertical continue de faire défiler la page. */
+grip.addEventListener('pointerdown',function(ev){orbitDrag=true; try{grip.setPointerCapture(ev.pointerId);}catch(e){} stop(); grip.style.cursor='grabbing'; ev.preventDefault();});
+grip.addEventListener('pointermove',function(ev){if(orbitDrag) orbitSet(ev);});
+grip.addEventListener('pointerup',endOrbit); grip.addEventListener('pointercancel',endOrbit);
 orbitC.addEventListener('pointerup',endOrbit); orbitC.addEventListener('pointercancel',endOrbit);
 window.addEventListener('resize',function(){dirty=true;});
 /* Les toiles ne sont redessinées que si nécessaire. L'orbite : quand l'état change. Le globe tourne en continu (sauf
