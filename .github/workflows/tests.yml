@@ -1,0 +1,21 @@
+# Lance les tests à chaque push et à chaque pull request. Voir la section « Tests » du README.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tests
+        env:
+          CHROME: google-chrome          # installé sur les machines de GitHub
+          EXIGER_NAVIGATEUR: "1"         # sans navigateur, échouer plutôt que sauter les tests de la page
+        run: python3 -m unittest discover -s tests -v

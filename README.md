@@ -64,8 +64,31 @@ python3 tools/update_indicators.py --out /var/www/example/earth
 | `tools/update_indicators.py` | Refreshes `data/indicateurs.json` from Our World in Data |
 | `tools/deploy.py` | Installs or updates the site in a folder served by a web server |
 | `tools/serve.py` | Local server |
+| `tests/` | Automated tests |
 
 The code comments and the build script messages are in French.
+
+## Tests
+
+```
+python3 -m unittest discover -s tests
+```
+
+The tests need Python 3.8 or later and nothing else to install. They take about two minutes and cover three things:
+
+- `tests/test_donnees.py`: the files shipped with the site. Shape of the data, tiles announced by `tiles/levels.json`, files the page refers to, nothing loaded from another site.
+- `tests/test_outils.py`: the scripts in `tools/`, run in temporary folders against fake sources. They touch neither the repository nor the network.
+- `tests/test_page.py`: the page itself in a headless Chrome. Loading, the five views in both languages, search, playback, saved choices, network failures and recovery, narrow and touch screens, loss of the 3D context, a browser without WebGL. Any exception, console error or missing file fails the test that caused it.
+
+The page tests look for Chrome in the `CHROME` environment variable, then in the Playwright cache, then under its usual command names (`chromium`, `google-chrome`…). Without a browser they are skipped and the run says so. They run on Linux and macOS (on Windows, under WSL).
+
+GitHub runs the whole suite on every push and pull request (`.github/workflows/tests.yml`); there, a missing browser is an error rather than a skip.
+
+To run only the first two files, which take two seconds:
+
+```
+python3 -m unittest tests/test_donnees.py tests/test_outils.py
+```
 
 ## Rebuilding the imagery and the data
 
