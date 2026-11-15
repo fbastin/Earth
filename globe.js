@@ -20,7 +20,7 @@ function pad(n){return (n<10?'0':'')+n}
 var li=0;
 var EN={
   gH1:"Explore Earth in 3D",
-  gAria:"Interactive globe. Arrow keys to move, plus and minus to zoom.",
+  gAria:"Interactive globe. Arrow keys to move, plus and minus to zoom. While measuring, Enter places a point at the centre of the view.",
   gPh:"City, country or coordinates", gSearchAria:"Search for a place", gPlaces:"Places", gToolbar:"Navigation",
   gLayersT:"Layers and settings", gNorthT:"Put north back at the top", gInT:"Zoom in", gOutT:"Zoom out", gTiltT:"Tilt the view",
   gHomeT:"Back to the whole Earth", gMeasureT:"Measure a distance", gFullT:"Full screen",
@@ -113,6 +113,9 @@ var D={
   goto:["Aller à {0}","Go to {0}"], none:["Aucun lieu trouvé. Essayez une ville, un pays ou « 45,5 N 73,6 O ».","No place found. Try a city, a country or “45.5 N 73.6 W”."],
   m0:["Cliquez un premier point sur le globe.","Click a first point on the globe."],
   m1:["Cliquez un deuxième point.","Click a second point."],
+  m0k:["Avec les flèches, amenez un premier point sous la croix, puis appuyez sur Entrée.","Use the arrow keys to bring a first point under the cross, then press Enter."],
+  m1k:["Amenez un deuxième point sous la croix, puis appuyez sur Entrée.","Bring a second point under the cross, then press Enter."],
+  mDk:["<b>{0} km</b> en suivant la courbure de la Terre{1}. Entrée prolonge le trajet, Échap termine.","<b>{0} km</b> along Earth's curvature{1}. Enter extends the path, Escape ends."],
   mD:["<b>{0} km</b> en suivant la courbure de la Terre{1}. Cliquez pour prolonger le trajet.","<b>{0} km</b> along Earth's curvature{1}. Click to extend the path."],
   mSeg:[" ({0} segments)"," ({0} segments)"],
   sunTxt:["Soleil au zénith à {0}. Il est midi solaire sur ce méridien.","The Sun is overhead at {0}. It is solar noon on that meridian."],
@@ -1064,6 +1067,19 @@ function drawOverlay(){
   function hOf(o){ if(o.h===undefined||o.hv!==elevVer){o.h=Math.max(0,elevAt(o.lat,o.lon)); o.hv=elevVer;} return o.h*ex; }
 
   if(opt.axis) drawAxis(ctx);
+  /* mesure au clavier : une croix marque le centre de la vue, où Entrée pose un point */
+  if(measure.on&&kbdMeasure()){
+    var mc=pick(W/2,H/2), mq=mc&&project(norm(mc),0);
+    if(mq){
+      ctx.save(); ctx.lineCap='round';
+      [[5,'#151a2d'],[2.5,'#ffd24a']].forEach(function(st){
+        ctx.lineWidth=st[0]; ctx.strokeStyle=st[1]; ctx.beginPath();
+        ctx.moveTo(mq[0]-13,mq[1]); ctx.lineTo(mq[0]-4,mq[1]); ctx.moveTo(mq[0]+4,mq[1]); ctx.lineTo(mq[0]+13,mq[1]);
+        ctx.moveTo(mq[0],mq[1]-13); ctx.lineTo(mq[0],mq[1]-4); ctx.moveTo(mq[0],mq[1]+4); ctx.lineTo(mq[0],mq[1]+13); ctx.stroke();
+      });
+      ctx.restore();
+    }
+  }
   /* trajet mesuré */
   if(measure.pts.length){
     ctx.save(); ctx.lineWidth=2.5; ctx.strokeStyle='#ffd24a'; ctx.beginPath();
@@ -1271,16 +1287,20 @@ glc.addEventListener('keydown',handlers.keydown=function(ev){
   else if(k==='n'||k==='N') flyTo({lat:cam.lat,lon:cam.lon,heading:0,tilt:0});
   else if(k==='Home') goHome();
   else if(k==='Escape'&&measure.on) setMeasure(false);
+  else if((k==='Enter'||k===' ')&&measure.on) addMeasure(W/2,H/2);       /* le point au centre de la vue, sous la croix */
   else used=false;
   if(used){ev.preventDefault(); dirty=true;}
 });
 
 /* ---------- mesure ---------- */
+function kbdMeasure(){       /* le globe a-t-il le focus du clavier ? Les consignes et la croix en dépendent */
+  try{ return glc.matches(':focus-visible'); }catch(e){ return document.activeElement===glc; }
+}
 function measureMsg(){
-  var n=measure.pts.length;
-  if(n<2){showMsg(t(n?'m1':'m0')); return;}
+  var n=measure.pts.length, k=kbdMeasure()?'k':'';
+  if(n<2){showMsg(t((n?'m1':'m0')+k)); return;}
   var km=0; for(var i=0;i+1<n;i++) km+=Math.acos(clamp(dot(measure.pts[i].v,measure.pts[i+1].v),-1,1))*RKM;
-  showMsg(tf('mD',nf(km,km<100?1:0),n>2?tf('mSeg',n-1):''));
+  showMsg(tf('mD'+k,nf(km,km<100?1:0),n>2?tf('mSeg',n-1):''));
 }
 function addMeasure(x,y){
   var P=pick(x,y); if(!P) return;
@@ -1393,7 +1413,12 @@ $('gTilt').addEventListener('click',function(){
   flyTo({lat:cam.lat,lon:cam.lon,heading:cam.heading,tilt:up?0:58*DEG,range:up?cam.range:Math.min(cam.range,1.5)});
 });
 $('gHome').addEventListener('click',goHome);
-$('gMeasure').addEventListener('click',function(){setMeasure(!measure.on);});
+$('gMeasure').addEventListener('click',function(ev){
+  setMeasure(!measure.on);
+  if(measure.on&&ev.detail===0){ glc.focus(); measureMsg(); }       /* bouton actionné au clavier : la suite se passe sur le globe */
+});
+glc.addEventListener('focus',function(){ if(measure.on){ measureMsg(); dirty=true; } });
+glc.addEventListener('blur',function(){ if(measure.on){ measureMsg(); dirty=true; } });
 $('gFull').addEventListener('click',function(){
   try{
     if(document.fullscreenElement) document.exitFullscreen();
@@ -1781,6 +1806,7 @@ function renderP(){
     if(on) el.setAttribute('aria-current','step'); else el.removeAttribute('aria-current');
   });
   $('pPlay').textContent=t(pop.playing?'pPause':'pPlay');
+  $('pLive').setAttribute('aria-live',pop.playing?'off':'polite');       /* pendant le défilement, un lecteur d'écran n'annonce pas chaque année */
   if(!popData){ $('pLive').textContent=t(popState===3?'pNoData':'pLoading'); return; }
   var m=popMeta(), ind=pop.ind, sl=$('pSlider'), y=pop.year, c=CUTS[ind], w, v, b;
   sl.min=m.debut; sl.max=m.fin; sl.value=y; sl.setAttribute('aria-valuetext',y+', '+popKind(y));

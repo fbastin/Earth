@@ -444,6 +444,127 @@ class Saisons(Base):
         p.attendre("dateOut.textContent!==%s" % json.dumps(avant), delai=10, quoi="la date avance pendant la lecture")
 
 
+# Textes dont le contraste avec le fond est sous le seuil des WCAG (4,5 ; 3 pour les grands caractères).
+CONTRASTES = r"""(function(){
+function rgba(s){var m=s.match(/rgba?\(([^)]+)\)/); if(!m) return [0,0,0,0]; var a=m[1].split(/[, \/]+/).map(Number); return [a[0],a[1],a[2],a.length>3?a[3]:1];}
+function lum(c){var a=c.slice(0,3).map(function(v){v/=255; return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4)}); return 0.2126*a[0]+0.7152*a[1]+0.0722*a[2];}
+function sur(f,b){var a=f[3]; return [f[0]*a+b[0]*(1-a),f[1]*a+b[1]*(1-a),f[2]*a+b[2]*(1-a),1];}
+function rapport(f,b){var x=lum(f),y=lum(b); return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
+function fond(el){var pile=[]; for(var e=el;e;e=e.parentElement){var b=rgba(getComputedStyle(e).backgroundColor); if(b[3]>0){pile.push(b); if(b[3]>=1) break;}}
+  var c=[255,255,255,1]; for(var i=pile.length-1;i>=0;i--) c=sur(pile[i],c); return c;}
+var mal=[], vue=document.querySelector('[id^=view-]:not([hidden])');
+[...document.querySelectorAll('nav.site *')].concat([...vue.querySelectorAll('*')]).forEach(function(el){
+  if(!el.offsetParent||el.closest('[hidden],[aria-hidden=true]')||el.disabled) return;
+  var champ=el.tagName==='INPUT'&&el.type==='text', txt=[...el.childNodes].filter(n=>n.nodeType===3&&n.textContent.trim()).map(n=>n.textContent.trim()).join(' ');
+  if(!txt&&!champ) return;
+  var cs=getComputedStyle(el), b=fond(el), f=sur(rgba(cs.color),b), px=parseFloat(cs.fontSize), seuil=px>=24||(px>=18.66&&+cs.fontWeight>=700)?3:4.5;
+  if(+cs.opacity<1) f=sur([f[0],f[1],f[2],+cs.opacity],b);
+  var nom=el.tagName.toLowerCase()+(el.id?'#'+el.id:'')+(typeof el.className==='string'&&el.className?'.'+el.className.trim().split(/\s+/).join('.'):'');
+  if(champ){ var r2=rapport(sur(rgba(getComputedStyle(el,'::placeholder').color),b),b); if(r2<4.5) mal.push(nom+'::placeholder '+r2.toFixed(2)); }
+  if(txt&&rapport(f,b)<seuil) mal.push(nom+' '+rapport(f,b).toFixed(2)+' « '+txt.slice(0,30)+' »');
+});
+return [...new Set(mal)].join(' | ');})()"""
+
+# Boutons, liens, champs et images sans nom pour un lecteur d'écran.
+SANS_NOM = r"""(function(){
+var vue=document.querySelector('[id^=view-]:not([hidden])'), mal=[];
+function nom(el){
+  var n=el.getAttribute('aria-label')||''; var ids=el.getAttribute('aria-labelledby');
+  if(ids) n+=ids.split(/\s+/).map(i=>(document.getElementById(i)||{}).textContent||'').join(' ');
+  if(el.labels&&el.labels.length) n+=[...el.labels].map(l=>l.textContent).join(' ');
+  if(!/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) n+=el.textContent;
+  return n.trim()||(el.getAttribute('title')||'').trim();
+}
+[...document.querySelectorAll('nav.site *')].concat([...vue.querySelectorAll('*')]).forEach(function(el){
+  if(el.closest('[hidden],[aria-hidden=true]')) return;
+  var role=el.getAttribute('role'), actif=/^(BUTTON|A|INPUT|SELECT|TEXTAREA|SUMMARY)$/.test(el.tagName)||el.tabIndex>=0&&el.hasAttribute('tabindex');
+  var image=el.tagName==='CANVAS'||el.tagName==='IMG'||role==='img'||(el.tagName==='svg'&&!el.closest('button,a'));
+  if((actif||image)&&!nom(el)) mal.push(el.tagName.toLowerCase()+(el.id?'#'+el.id:'')+(typeof el.className==='string'&&el.className?'.'+el.className:''));
+  if(el.tagName==='CANVAS'&&!role) mal.push('canvas#'+el.id+' sans rôle');
+});
+return [...new Set(mal)].join(' | ');})()"""
+
+
+class Accessibilite(Base):
+    def test_contrastes(self):
+        for sombre in (False, True):
+            p = self.ouvrir(pret=False)
+            p.theme(sombre)
+            p.recharger()
+            p.attendre(PRET)
+            for v in VUES:
+                self.vue(p, v)
+                if v == "globe":
+                    p.cliquer("#gLayers")
+                    time.sleep(0.2)
+                self.assertEqual(p.js(CONTRASTES), "", "vue %s, thème %s" % (v, "sombre" if sombre else "clair"))
+
+    def test_tout_a_un_nom(self):
+        p = self.ouvrir()
+        for langue in ("fr", "en"):
+            p.cliquer("#lang-" + langue)
+            for v in VUES:
+                self.vue(p, v)
+                self.assertEqual(p.js(SANS_NOM), "", "vue %s (%s)" % (v, langue))
+
+    def test_un_titre_par_vue_et_focus(self):
+        """Au changement de vue, le focus va au titre de la vue : un lecteur d'écran l'annonce."""
+        p = self.ouvrir()
+        for v in VUES[1:] + VUES[:1]:
+            self.vue(p, v)
+            self.assertEqual(p.js("document.querySelectorAll('#view-%s h1').length" % v), 1)
+            self.assertEqual(p.js("document.activeElement.tagName+' '+document.activeElement.closest('[id^=view-]').id"), "H1 view-" + v)
+            self.assertEqual(p.js("document.querySelectorAll('main:not([hidden])').length"), 1)
+        p.js("history.back()")
+        p.attendre("Site.view==='saisons'&&document.activeElement.tagName==='H1'", delai=5, quoi="« Retour » déplace aussi le focus")
+
+    def test_pas_d_annonce_pendant_la_lecture(self):
+        p = self.ouvrir("population")
+        p.attendre(INDICATEURS_PRETS)
+        self.assertEqual(p.js("pLive.getAttribute('aria-live')"), "polite")
+        p.cliquer("#pPlay")
+        p.attendre("pLive.getAttribute('aria-live')==='off'", delai=5, quoi="années qui défilent : pas d'annonce")
+        p.cliquer("#pPlay")
+        p.attendre("pLive.getAttribute('aria-live')==='polite'", delai=5)
+        self.vue(p, "saisons")
+        self.assertEqual(p.js("story.getAttribute('aria-live')"), "polite")
+        p.cliquer("#play")
+        self.assertEqual(p.js("story.getAttribute('aria-live')"), "off")
+        p.regler("date", 100)                # déplacer le curseur arrête la lecture
+        p.attendre("story.getAttribute('aria-live')==='polite'", delai=5)
+
+    def test_mesure_au_clavier(self):
+        p = self.ouvrir()
+        p.js("gMeasure.focus()")
+        p.touche("Enter")
+        p.attendre("document.activeElement.id==='gl'&&!gMsg.hidden", delai=5, quoi="le focus passe au globe")
+        self.assertIn("Entrée", p.js("gMsg.textContent"))
+        self.assertGreaterEqual(p.js("parseFloat(getComputedStyle(gl).outlineWidth)"), 2, "le globe montre qu'il a le focus")
+        self.assertEqual(p.js("getComputedStyle(gl).outlineStyle"), "solid")
+        premier = p.js("gMsg.textContent")
+        p.touche("Enter")
+        p.attendre("gMsg.textContent!==%s" % json.dumps(premier), delai=5, quoi="premier point posé")
+        for _ in range(3):
+            p.touche("ArrowLeft")
+        self.immobile(p)
+        p.touche("Enter")
+        p.attendre("/\\d km/.test(gMsg.textContent)", delai=5, quoi="distance affichée après le deuxième point")
+        km = float(p.js("gMsg.querySelector('b').textContent.replace(/[^0-9,]/g,'').replace(',','.')"))
+        self.assertGreater(km, 500)
+        p.touche("Escape")
+        p.attendre("gMsg.hidden&&gMeasure.getAttribute('aria-pressed')==='false'", delai=5)
+
+    def test_mesure_a_la_souris_inchangee(self):
+        p = self.ouvrir()
+        p.clic_souris("#gMeasure")
+        p.attendre("!gMsg.hidden", delai=5)
+        self.assertIn("Cliquez", p.js("gMsg.textContent"))
+        self.assertNotEqual(p.js("document.activeElement.id"), "gl", "à la souris, le focus ne quitte pas le bouton")
+        p.clic_souris("#gl")
+        p.attendre("/deuxième/.test(gMsg.textContent)", delai=5)
+        self.assertIn("Cliquez", p.js("gMsg.textContent"))
+
+
 class EcranEtroit(Base):
     def test_pas_de_defilement_horizontal(self):
         for largeur in (360, 768):

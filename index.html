@@ -34,6 +34,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16p
 .page{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
 .page[data-view="globe"]{max-width:1480px}
 .view{display:flex;flex-direction:column;gap:28px;min-width:0}
+h1:focus{outline:none}       /* le titre reçoit le focus au changement de vue, sans cadre */
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 
 /* navigation du site */
@@ -162,7 +163,7 @@ footer{font-size:.8rem;color:var(--ink-2)}
 #gl{touch-action:none;cursor:grab;outline:none}
 #gl.drag{cursor:grabbing}
 #gl.measure{cursor:crosshair}
-#gl:focus-visible{box-shadow:inset 0 0 0 2px var(--sun)}
+#gl:focus-visible{outline:3px solid #ffd24a;outline-offset:-3px}       /* un contour : une ombre intérieure resterait cachée sous l'image */
 #glabels{pointer-events:none}
 .gsearch{position:absolute;left:12px;top:12px;width:min(340px,calc(100% - 76px));z-index:3}
 .gsearch input{background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:10px;padding:9px 12px}
@@ -332,7 +333,7 @@ a.inline{color:inherit;text-underline-offset:3px}
     <h1 class="vh" data-i18n="gH1">Explorer la Terre en 3D</h1>
     <div id="gSlot">
     <div class="gstage" id="gstage" aria-busy="true">
-      <canvas id="gl" tabindex="0" aria-label="Globe terrestre interactif. Flèches pour se déplacer, plus et moins pour zoomer." data-i18n-attr="aria-label:gAria"></canvas>
+      <canvas id="gl" tabindex="0" role="application" aria-label="Globe terrestre interactif. Flèches pour se déplacer, plus et moins pour zoomer. Pendant une mesure, Entrée pose un point au centre de la vue." data-i18n-attr="aria-label:gAria"></canvas>
       <canvas id="glabels" aria-hidden="true"></canvas>
 
       <div class="gsearch combo">
@@ -699,12 +700,12 @@ a.inline{color:inherit;text-underline-offset:3px}
 
   <section class="stage" aria-label="Simulation">
     <figure class="orbitfig">
-      <canvas id="orbit" aria-label="La Terre sur son orbite autour du Soleil" data-i18n-attr="aria-label:orbitAria"></canvas>
+      <canvas id="orbit" role="img" aria-label="La Terre sur son orbite autour du Soleil" data-i18n-attr="aria-label:orbitAria"></canvas>
       <span id="orbitGrip" aria-hidden="true"></span>
       <figcaption data-i18n="capOrbit">L'orbite vue de biais. L'axe pointe toujours du même côté. Faites glisser la Terre pour changer de date. Tailles et distances ne sont pas à l'échelle.</figcaption>
     </figure>
     <figure>
-      <canvas id="globe" aria-label="La Terre éclairée par le Soleil, vue de côté" data-i18n-attr="aria-label:globeAria"></canvas>
+      <canvas id="globe" role="img" aria-label="La Terre éclairée par le Soleil, vue de côté" data-i18n-attr="aria-label:globeAria"></canvas>
       <figcaption data-i18n="capGlobe">La Terre vue de côté, Soleil à gauche. Le cercle tracé est votre latitude&nbsp;: sa partie claire est le jour, sa partie sombre la nuit.</figcaption>
     </figure>
   </section>
@@ -868,6 +869,9 @@ var Site=(function(){
     if(v===S.view) return;
     S.view=v; render(); fire(viewCbs,v);
     if(!quiet){writeHash(); window.scrollTo(0,0);}
+    /* Le focus va au titre de la nouvelle vue : un lecteur d'écran l'annonce, et Tab continue dans la vue. */
+    var h=$('view-'+v).querySelector('h1');
+    if(h){ h.setAttribute('tabindex','-1'); try{h.focus({preventScroll:true});}catch(e){h.focus();} }
   };
   S.start=function(){
     document.querySelectorAll('[data-i18n]').forEach(function(el){statics.push({el:el,key:el.getAttribute('data-i18n'),fr:el.innerHTML});});
@@ -1556,8 +1560,10 @@ function update(){
 
 /* ---------- commandes ---------- */
 var playBtn=$('play');
-function stop(){state.playing=false; playBtn.textContent=t('play');}
-playBtn.addEventListener('click',function(){state.playing=!state.playing; playBtn.textContent=t(state.playing?'pause':'play');});
+/* Pendant la lecture, le texte qui résume la situation change sans cesse : un lecteur d'écran ne l'annonce qu'à l'arrêt. */
+function live(){ $('story').setAttribute('aria-live',state.playing?'off':'polite'); }
+function stop(){state.playing=false; playBtn.textContent=t('play'); live();}
+playBtn.addEventListener('click',function(){state.playing=!state.playing; playBtn.textContent=t(state.playing?'pause':'play'); live();});
 dateIn.addEventListener('input',function(){stop(); state.day=+this.value+0.5; dirty=true;});
 latIn.addEventListener('input',function(){setPlace(+this.value,-1,false);});
 tiltIn.addEventListener('input',function(){state.tilt=+this.value; dirty=true;});

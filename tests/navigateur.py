@@ -216,10 +216,31 @@ class Page:
     def cliquer(self, selecteur):
         self.js("document.querySelector(%s).click()" % json.dumps(selecteur))
 
+    def clic_souris(self, selecteur):
+        """Un vrai clic de souris au milieu de l'élément (cliquer() ressemble, pour la page, à une frappe au clavier)."""
+        r = json.loads(self.js("(function(){var r=document.querySelector(%s).getBoundingClientRect();"
+                               "return JSON.stringify([r.left+r.width/2,r.top+r.height/2])})()" % json.dumps(selecteur)))
+        for t in ("mousePressed", "mouseReleased"):
+            self.envoyer("Input.dispatchMouseEvent", {"type": t, "x": r[0], "y": r[1], "button": "left", "clickCount": 1})
+
     def toucher(self, x, y):
         self.envoyer("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x, "y": y}]})
         time.sleep(0.06)
         self.envoyer("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+
+    TOUCHES = {"Enter": (13, "\r"), "Tab": (9, ""), "Escape": (27, ""), "ArrowLeft": (37, ""), "ArrowUp": (38, ""),
+               "ArrowRight": (39, ""), "ArrowDown": (40, ""), " ": (32, " ")}
+
+    def touche(self, nom):
+        """Une vraie frappe au clavier, sur l'élément qui a le focus."""
+        code, texte = self.TOUCHES[nom]
+        commun = {"key": nom, "code": "Space" if nom == " " else nom, "windowsVirtualKeyCode": code}
+        self.envoyer("Input.dispatchKeyEvent", dict(commun, type="keyDown", **({"text": texte} if texte else {})))
+        self.envoyer("Input.dispatchKeyEvent", dict(commun, type="keyUp"))
+
+    def theme(self, sombre):
+        self.envoyer("Emulation.setEmulatedMedia",
+                     {"features": [{"name": "prefers-color-scheme", "value": "dark" if sombre else "light"}]})
 
     def incidents(self):
         """Erreurs survenues depuis le dernier appel : exceptions, console.error, fichiers du site introuvables."""
