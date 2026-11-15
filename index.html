@@ -257,7 +257,7 @@ a.inline{color:inherit;text-underline-offset:3px}
 .plegend .bar i{display:block;height:12px;border-radius:2px}
 .plegend .ticks{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;font-variant-numeric:tabular-nums}
 .plegend .ticks span{text-align:right;transform:translateX(50%);white-space:nowrap}
-.plegend .ticks span:last-child{visibility:hidden}
+.plegend .ticks span:last-child{visibility:hidden;transform:none}       /* invisible, mais décalé il élargirait la page sous Firefox */
 .plegend .nd{display:flex;align-items:center;gap:6px}
 .plegend .nd i{display:inline-block;width:12px;height:12px;border-radius:2px;background:#4a4e5a}
 #pWorld{font-size:.95rem}
