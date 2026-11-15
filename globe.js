@@ -104,7 +104,8 @@ var D={
   softNote:["rendu simplifié, sans carte graphique","simplified rendering, no graphics card"],
   glErr:["Le rendu 3D n'a pas pu démarrer sur cette carte graphique.","3D rendering could not start on this graphics card."],
   loading:["Chargement du globe…","Loading the globe…"],
-  noData:["Les images du globe n'ont pas pu être chargées. Rechargez la page.","The globe imagery could not be loaded. Reload the page."],
+  noData:["Les images du globe n'ont pas pu être chargées. Nouvel essai en cours ; sinon, rechargez la page.","The globe imagery could not be loaded. Trying again; otherwise, reload the page."],
+  noPlaces:["La liste des lieux n'a pas pu être chargée. Nouvel essai en cours…","The list of places could not be loaded. Trying again…"],
   lost:["L'affichage 3D s'est interrompu. Il reprend dès que le navigateur le permet ; sinon, rechargez la page.","The 3D display stopped. It resumes as soon as the browser allows; otherwise, reload the page."],
   elev:["altitude ≈ {0} m","elevation ≈ {0} m"], depth:["profondeur ≈ {0} m","depth ≈ {0} m"],
   eye:["vue de {0} km d'altitude","eye altitude {0} km"], ex:["relief × {0}","relief × {0}"],
@@ -422,6 +423,8 @@ function makeTex(bmp,repeatS,mips){
   else gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
   return tex;
 }
+function retryDelay(n){ return Math.min(60000,1000*Math.pow(2,n)); }
+var softFails={};
 function loadTile(tl){
   var gen=glGen;
   tl.state=1; loading++;
@@ -432,7 +435,9 @@ function loadTile(tl){
     if(tl.L===0){ stage.removeAttribute('aria-busy'); if(busyMsg){busyMsg=false; showMsg('');} }
   }).catch(function(){
     if(gen!==glGen) return;
-    tl.state=3; if(tl.L===0) showMsg(t('noData'),true);
+    tl.state=3; if(tl.L===0){ showMsg(t('noData'),true); busyMsg=true; }       /* busyMsg : le message s'efface quand l'image arrive enfin */
+    tl.fails=(tl.fails||0)+1;        /* nouvel essai après 2, 4, 8… secondes (60 au plus), si la tuile est encore demandée */
+    setTimeout(function(){ if(gen===glGen&&tl.state===3){ tl.state=0; dirty=true; } },retryDelay(tl.fails));
   }).then(function(){ loading--; dirty=true; });
 }
 function evict(){
@@ -505,13 +510,13 @@ function buildGraticule(){
 function rebuildLines(){ if(soft) return; for(var k in lineSets){var s=lineSets[k]; lineSet(k,s.polys,s.color,s.deg);} }
 
 /* ---------- lieux ---------- */
-var places=null;   /* {countries:[{n:[fr,en],lat,lon,v,rank,k}], cities:[…]} */
+var places=null, placesFail=0;   /* {countries:[{n:[fr,en],lat,lon,v,rank,k}], cities:[…]} */
 function loadPlaces(){
-  return fetch('data/places.json').then(function(r){return r.json()}).then(function(d){
+  return fetch('data/places.json').then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(d){
     var cs=d.countries.map(function(c){return {n:[c[0],c[1]],lat:c[2],lon:c[3],rank:c[4]/10,span:c[5],v:ll2v(c[2],c[3]),k:null,type:0};});
     places={countries:cs,cities:[],ends:[],admins:d.admins||[]};
-    addCities(d.cities); needSmall();
-  }).catch(function(){});
+    placesFail=0; addCities(d.cities); needSmall();
+  }).catch(function(){ if(places) return; placesFail++; setTimeout(loadPlaces,retryDelay(placesFail)); });
 }
 function addCities(rows){      /* rows triées par rang ; ends[r] = nombre de villes de rang <= r */
   var ct=places.cities;         /* objets légers : le vecteur v et les clés de recherche ne sont calculés qu'au besoin */
@@ -519,7 +524,21 @@ function addCities(rows){      /* rows triées par rang ; ends[r] = nombre de vi
   var ends=[], r=0;
   for(var i=0;i<ct.length;i++){ while(r<ct[i].rank) ends[r++]=i; }
   while(r<=15) ends[r++]=ct.length;
-  places.ends=ends; dirty=true;
+  places.ends=ends; dirty=true; prefold();
+}
+/* Clés de recherche : le nom en minuscules sans accents, précédé d'une espace (un mot commence donc toujours par ' ').
+   Elles sont préparées par paquets pendant les temps morts, pour que la première recherche ne fige pas la page. */
+function keyOf(s){ return ' '+(/^[A-Za-z]+( [A-Za-z]+)*$/.test(s)?s.toLowerCase():fold(s)); }
+function setKeys(o){ o.k=keyOf(o.n[0]); o.k2=o.n[1]===o.n[0]?o.k:keyOf(o.n[1]); }
+var foldAt=0, foldBusy=false;
+function prefold(){
+  if(foldBusy||!places) return;
+  var ct=places.cities; if(foldAt>=ct.length) return;
+  foldBusy=true;
+  (window.requestIdleCallback||function(f){return setTimeout(f,30);})(function(){
+    for(var end=Math.min(ct.length,foldAt+12000); foldAt<end; foldAt++) if(ct[foldAt].k===null) setKeys(ct[foldAt]);
+    foldBusy=false; prefold();
+  });
 }
 /* Fichiers de lieux supplémentaires, du plus peuplé au moins peuplé. Chacun n'est chargé que si le mode le permet
    et quand on en a besoin : le premier tout de suite, les autres à la première recherche ou au zoom rapproché. */
@@ -531,7 +550,7 @@ function needPlaces(rank){
     addCities(d.cities); extraAt++; extraBusy=false;
     if(!qPop.hidden) renderSearch(); if(!jqPop.hidden) jqRender();
     needPlaces(rank);
-  }).catch(function(){extraBusy=false;});
+  }).catch(function(){ setTimeout(function(){extraBusy=false;},4000); });       /* pas de nouvel essai immédiat à chaque frappe */
 }
 function needSmall(){needPlaces(11);}
 function fixed(list,type){return list.map(function(o){return {n:[o[2],o[3]],lat:o[0],lon:o[1],v:ll2v(o[0],o[1]),type:type};});}
@@ -878,7 +897,11 @@ function softLoad(L,c,r){
     if(!softGrid[L]) softGrid[L]=[];
     softGrid[L][tl.i]=pixelsOf(bmp); tl.state=2; softBytes+=tl.bytes;
     if(L===0){ stage.removeAttribute('aria-busy'); if(busyMsg){busyMsg=false; showMsg('');} }
-  }).catch(function(){ tl.state=3; if(L===0) showMsg(t('noData'),true); }).then(function(){softLoading--; dirty=true;});
+  }).catch(function(){
+    tl.state=3; if(L===0){ showMsg(t('noData'),true); busyMsg=true; }
+    softFails[key]=(softFails[key]||0)+1;        /* la tuile est oubliée après un délai : elle sera redemandée si elle sert encore */
+    setTimeout(function(){ if(softTiles.get(key)===tl){ softTiles.delete(key); dirty=true; } },retryDelay(softFails[key]));
+  }).then(function(){softLoading--; dirty=true;});
 }
 function softEvict(){
   var budget=M.mem*(coarse?0.5:0.75)*1048576; if(softBytes<=budget) return;
@@ -1281,18 +1304,27 @@ function search(txt){
   if(c) return [{coords:true,lat:c.lat,lon:c.lon,n:[coordStr(c.lat,c.lon),coordStr(c.lat,c.lon)]}];
   var q=fold(txt); if(!q||!places) return out;
   needPlaces(14);
+  var sq=' '+q, sub=q.length>=3;
+  function one(k){        /* 0 : nom exact, 1 : début du nom, 2 : début d'un mot, 3 : milieu d'un mot, -1 : rien */
+    var p=k.indexOf(sq);
+    return p===0?(k.length===sq.length?0:1):p>0?2:sub&&k.indexOf(q)>=0?3:-1;
+  }
   function score(o){
-    if(o.k===null){ o.k=fold(o.n[0]); o.k2=o.n[1]===o.n[0]?o.k:fold(o.n[1]); }        /* clés calculées à la première recherche */
-    var a=o.k, b=o.k2;
-    if(a===q||b===q) return 0;
-    if(a.indexOf(q)===0||b.indexOf(q)===0) return 1;
-    if((' '+a).indexOf(' '+q)>=0||(' '+b).indexOf(' '+q)>=0) return 2;
-    return q.length>=3&&(a.indexOf(q)>=0||b.indexOf(q)>=0)?3:-1;
+    if(o.k===null) setKeys(o);        /* clé pas encore préparée */
+    var a=one(o.k), b; if(o.k2===o.k||a===0) return a;
+    b=one(o.k2); return a<0?b:b<0?a:Math.min(a,b);
   }
   places.countries.forEach(function(o){var s=score(o); if(s>=0) out.push([s*100+o.rank-4,o]);});
   for(var ci=0, cn=places.ends[M.rank], cs=places.cities; ci<cn; ci++){ var o=cs[ci], sc=score(o); if(sc>=0) out.push([sc*100+o.rank-(o.cap?2:0)-Math.min(3,o.pop/3000),o]); }
   out.sort(function(x,y){return x[0]-y[0]});
   return out.slice(0,8).map(function(x){return x[1]});
+}
+function later(fn,ms){          /* fn après une pause de ms ; .flush() l'exécute tout de suite s'il est en attente, .cancel() l'annule */
+  var id=0;
+  function d(){ clearTimeout(id); id=setTimeout(function(){id=0; fn();},ms||120); }
+  d.flush=function(){ if(id){ clearTimeout(id); id=0; fn(); } };
+  d.cancel=function(){ clearTimeout(id); id=0; };
+  return d;
 }
 function kindOf(o){return o.coords?t('coords'):o.type===0?t('country'):o.cap?t('capital'):t('city');}
 function renderSearch(){
@@ -1308,7 +1340,7 @@ function renderSearch(){
     h+='<li role="option" id="gq-'+i+'" data-i="'+i+'" aria-selected="'+(i===qAct)+'" class="'+(i===qAct?'act':'')+'"><span class="n">'+esc(o.n[li])+(sub?' <span class="c">'+esc(sub)+'</span>':'')+'</span><span class="l">'+kindOf(o)+'</span></li>';
   });
   qList.innerHTML=h; qList.hidden=!qItems.length;
-  var none=txt&&!qItems.length&&places; qHead.textContent=none?t('none'):''; qHead.hidden=!none;
+  var none=txt&&!qItems.length&&(places||placesFail); qHead.textContent=none?t(places?'none':'noPlaces'):''; qHead.hidden=!none;
   var open=!!txt&&(qItems.length>0||none);
   qPop.hidden=!open; qIn.setAttribute('aria-expanded',String(open));
   if(qAct>=0) qIn.setAttribute('aria-activedescendant','gq-'+qAct); else qIn.removeAttribute('aria-activedescendant');
@@ -1327,15 +1359,17 @@ function choosePlace(o){
   flyTo({lat:o.lat,lon:o.lon,range:range});
   qIn.value=o.n[li]; closeSearch(); if(coarse) qIn.blur();
 }
-qIn.addEventListener('input',renderSearch);
+var qLater=later(renderSearch);
+qIn.addEventListener('input',qLater);
 qIn.addEventListener('focus',function(){ $('gPanel').hidden=true; $('gLayers').setAttribute('aria-expanded','false'); if(qIn.value.trim()) renderSearch(); });
 qIn.addEventListener('keydown',function(ev){
+  qLater.flush();
   var k=ev.key, n=qItems.length;
   if((k==='ArrowDown'||k==='ArrowUp')&&n){ ev.preventDefault(); if(qPop.hidden) renderSearch(); else setAct(k==='ArrowDown'?(qAct+1)%n:(qAct+n-1)%n); }
   else if(k==='Enter'){ ev.preventDefault(); if(qPop.hidden) renderSearch(); if(qAct>=0&&qItems[qAct]) choosePlace(qItems[qAct]); }
   else if(k==='Escape'){ if(!qPop.hidden){ev.preventDefault(); closeSearch();} else if(qIn.value){ev.preventDefault(); qIn.value=''; pin=null; dirty=true;} }
 });
-qIn.addEventListener('blur',function(){setTimeout(closeSearch,0);});
+qIn.addEventListener('blur',function(){qLater.cancel(); setTimeout(closeSearch,0);});
 qPop.addEventListener('mousedown',function(ev){ev.preventDefault();});
 qList.addEventListener('click',function(ev){var el=ev.target.closest('li'); if(el) choosePlace(qItems[+el.getAttribute('data-i')]);});
 function closePanels(){ closeSearch(); }
@@ -1465,14 +1499,16 @@ function cityCombo(id,choose){
       return '<li role="option" id="'+id+'-'+i+'" data-i="'+i+'" aria-selected="'+(i===act)+'" class="'+(i===act?'act':'')+'"><span class="n">'+esc(o.n[li])+(sub?' <span class="c">'+esc(sub)+'</span>':'')+'</span></li>';
     }).join('');
     list.hidden=!items.length;
-    var none=txt&&!items.length&&places; head.textContent=none?t('none'):''; head.hidden=!none;
+    var none=txt&&!items.length&&(places||placesFail); head.textContent=none?t(places?'none':'noPlaces'):''; head.hidden=!none;
     var open=!!txt&&(items.length>0||none); pop.hidden=!open; inp.setAttribute('aria-expanded',String(open));
     if(act>=0) inp.setAttribute('aria-activedescendant',id+'-'+act); else inp.removeAttribute('aria-activedescendant');
   }
   function pick(o){ inp.value=o.n[li]; close(); if(coarse) inp.blur(); choose({lat:o.lat,lon:o.lon,n:o.n}); }
-  inp.addEventListener('input',render);
+  var renderLater=later(render);
+  inp.addEventListener('input',renderLater);
   inp.addEventListener('focus',function(){setTimeout(function(){ if(document.activeElement===inp) inp.select(); },0);});
   inp.addEventListener('keydown',function(ev){
+    renderLater.flush();
     var k=ev.key, n=items.length;
     if((k==='ArrowDown'||k==='ArrowUp')&&n){
       ev.preventDefault(); if(pop.hidden){render(); return;}
@@ -1483,7 +1519,7 @@ function cityCombo(id,choose){
     else if(k==='Enter'){ ev.preventDefault(); if(pop.hidden) render(); if(act>=0&&items[act]) pick(items[act]); }
     else if(k==='Escape'&&!pop.hidden){ ev.preventDefault(); close(); }
   });
-  inp.addEventListener('blur',function(){setTimeout(function(){close(); renderF();},0);});
+  inp.addEventListener('blur',function(){renderLater.cancel(); setTimeout(function(){close(); renderF();},0);});
   pop.addEventListener('mousedown',function(ev){ev.preventDefault();});
   list.addEventListener('click',function(ev){var el=ev.target.closest('li'); if(el) pick(items[+el.getAttribute('data-i')]);});
 }
@@ -1909,7 +1945,7 @@ function jqRender(){
     return '<li role="option" id="jq-'+i+'" data-i="'+i+'" aria-selected="'+(i===jqAct)+'" class="'+(i===jqAct?'act':'')+'"><span class="n">'+esc(o.n[li])+(sub?' <span class="c">'+esc(sub)+'</span>':'')+'</span></li>';
   }).join('');
   jqList.hidden=!jqItems.length;
-  var none=txt&&!jqItems.length&&places; jqHead.textContent=none?t('none'):''; jqHead.hidden=!none;
+  var none=txt&&!jqItems.length&&(places||placesFail); jqHead.textContent=none?t(places?'none':'noPlaces'):''; jqHead.hidden=!none;
   var open=!!txt&&(jqItems.length>0||none); jqPop.hidden=!open; jq.setAttribute('aria-expanded',String(open));
   if(jqAct>=0) jq.setAttribute('aria-activedescendant','jq-'+jqAct); else jq.removeAttribute('aria-activedescendant');
 }
@@ -1919,8 +1955,10 @@ function jqChoose(o){
   lesson.day=null; applyStep(2);
   var r=stage.getBoundingClientRect(); if(r.bottom<120||r.top>window.innerHeight-120) stage.scrollIntoView({block:'nearest',behavior:reduce?'auto':'smooth'});
 }
-jq.addEventListener('input',jqRender);
+var jqLater=later(jqRender);
+jq.addEventListener('input',jqLater);
 jq.addEventListener('keydown',function(ev){
+  jqLater.flush();
   var k=ev.key, n=jqItems.length;
   if((k==='ArrowDown'||k==='ArrowUp')&&n){
     ev.preventDefault(); if(jqPop.hidden){jqRender(); return;}
@@ -1931,7 +1969,7 @@ jq.addEventListener('keydown',function(ev){
   else if(k==='Enter'){ ev.preventDefault(); if(jqPop.hidden) jqRender(); if(jqAct>=0&&jqItems[jqAct]) jqChoose(jqItems[jqAct]); }
   else if(k==='Escape'&&!jqPop.hidden){ ev.preventDefault(); jqClose(); }
 });
-jq.addEventListener('blur',function(){setTimeout(jqClose,0);});
+jq.addEventListener('blur',function(){jqLater.cancel(); setTimeout(jqClose,0);});
 jqPop.addEventListener('mousedown',function(ev){ev.preventDefault();});
 jqList.addEventListener('click',function(ev){var el=ev.target.closest('li'); if(el) jqChoose(jqItems[+el.getAttribute('data-i')]);});
 $('jDay').addEventListener('input',function(){sunSt.day=+this.value; lesson.today=false; syncSun(); dirty=true; savePrefs();});
