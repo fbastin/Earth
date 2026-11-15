@@ -24,6 +24,25 @@ Opening `index.html` straight from disk does not work: the browser then refuses 
 
 `index.html` deliberately has no `<!doctype>` and no `<html>` tag: the page is also published as an artifact on claude.ai, which adds that wrapper. `tools/serve.py` adds it the same way locally. With another file server the site still works, but the browser renders it in quirks mode.
 
+## Installing on a web server
+
+The site is static. `tools/deploy.py` copies it into a folder served by any web server and writes the complete `index.html` there (with the `<!doctype>` wrapper the repository file leaves out):
+
+```
+python3 tools/deploy.py /var/www/example/earth
+```
+
+Run it again after a `git pull`: only the files that changed are rewritten, and nothing is deleted. Three options, used together, add a link back to the hosting site at the top of the page: `--back-url` (where `{lang}` becomes `fr` or `en`), `--back-fr` and `--back-en` (the link text in each language).
+
+To keep the data of an installed site current without touching the repository, point the two update scripts at the folder, for instance from a monthly scheduled task:
+
+```
+python3 tools/update_population.py --out /var/www/example/earth
+python3 tools/update_indicators.py --out /var/www/example/earth
+```
+
+`deploy.py` never replaces these two data files with an older copy from the repository.
+
 ## Browser requirements
 
 - The globe uses WebGL 2, or WebGL 1 if that is unavailable.
@@ -43,6 +62,7 @@ Opening `index.html` straight from disk does not work: the browser then refuses 
 | `tools/build_assets.py` | Rebuilds `tiles/` and `data/` from the public sources |
 | `tools/update_population.py` | Refreshes `data/population.json` from the pib-mondial repository |
 | `tools/update_indicators.py` | Refreshes `data/indicateurs.json` from Our World in Data |
+| `tools/deploy.py` | Installs or updates the site in a folder served by a web server |
 | `tools/serve.py` | Local server |
 
 The code comments and the build script messages are in French.

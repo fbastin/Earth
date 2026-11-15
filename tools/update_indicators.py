@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Met à jour data/indicateurs.json, les indicateurs de la vue « Population » tirés d'Our World in Data.
 
-    python3 tools/update_indicators.py
+    python3 tools/update_indicators.py [--out dossier]
+
+`--out` désigne le dossier dont data/indicateurs.json est mis à jour (et dont data/pays.json donne les pays de la
+carte) : par défaut le dépôt, sinon un site installé par tools/deploy.py.
 
 Pour chaque indicateur, le script télécharge le fichier CSV du graphique (pays, code, année, valeur) et ses
 métadonnées, garde les années à partir de 1950 et les pays de la carte (data/pays.json), et écrit le tout dans un seul
@@ -90,16 +93,22 @@ def indicateur(slug, dec, carte):
 
 
 def main():
-    with open(os.path.join(ROOT, "data", "pays.json"), encoding="utf-8") as f:
+    args, root = sys.argv[1:], ROOT
+    if args:
+        if len(args) != 2 or args[0] != "--out":
+            sys.exit("Usage : python3 tools/update_indicators.py [--out dossier]")
+        root = os.path.abspath(args[1])
+    dest = os.path.join(root, "data", "indicateurs.json")
+    with open(os.path.join(root, "data", "pays.json"), encoding="utf-8") as f:
         carte = {r[0] for r in json.load(f)}
     out = {"format": FORMAT, "version": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
            "origine": "Our World in Data (https://ourworldindata.org), CC BY 4.0 ; chaque série reste sous la licence de ses sources",
            "indicateurs": {k: indicateur(slug, dec, carte) for k, (slug, dec) in INDICATEURS.items()}}
     raw = json.dumps(out, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-    tmp = DEST + ".part"
+    tmp = dest + ".part"
     with open(tmp, "wb") as f:
         f.write(raw)
-    os.replace(tmp, DEST)
+    os.replace(tmp, dest)
     print("data/indicateurs.json : %d indicateurs, %d ko." % (len(out["indicateurs"]), len(raw) // 1000))
 
 
