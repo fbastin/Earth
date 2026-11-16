@@ -5,7 +5,7 @@ An interactive teaching site about the Earth, in French and English, meant as cl
 Five views:
 
 - **3D Globe**: a globe to explore in the manner of Google Earth. Satellite imagery down to 1 km per pixel, 3D relief, borders, place names, search across 484,000 places, distance measurement, day and night at any date and time, twelve places with a short commentary.
-- **Day and night**: a five-step lesson that drives the globe to explain why there is day, then night. Rotation axis, view tilted by 23.4°, a city to follow, adjustable date and speed.
+- **Day and night**: a five-step lesson that drives the globe to explain why there is day, then night. Rotation axis with an adjustable tilt (0 to 90°), a city to follow with its day length, adjustable date and speed.
 - **Time zones**: a five-step lesson on why the time differs from one country to another. Theoretical 15° zones, real zones coloured on the globe, the time difference between two cities, the International Date Line.
 - **Population**: every country coloured on the globe from 1950 to 2050, by population, population growth or GDP per capita, with the path of each country and an 80% range for the projected years. Four more indicators, observed only, run from 1950 to the latest year available: children per woman, life expectancy, CO₂ emissions per capita and urban population. Four steps explain the growth of the world population, its unevenness, why a projection comes with a range, and GDP per capita.
 - **Seasons**: a simulation of the orbit and the axial tilt, with day length and solar energy received by latitude.
