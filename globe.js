@@ -45,8 +45,8 @@ var EN_J={
   j4h:"Noon here, midnight on the other side",
   j4p:"This time the camera turns with the Earth, as we do. The small sun marks the place where it is exactly noon. It moves 15° of longitude per hour, 360° in 24 hours. On the opposite side of the globe it is midnight. That is why the time differs from one country to another.",
   j5h:"Longer days in summer",
-  j5p:"Earth's axis is tilted by 23.4°. On June 21 the North Pole leans toward the Sun: in the north, every city spends more time in the light than in shadow, and beyond the Arctic Circle the Sun no longer sets. On December 21 it is the reverse. At the equinoxes, day and night last about 12 hours everywhere. The <a class=\"inline\" href=\"#saisons\" data-view=\"saisons\">Seasons</a> view explains this mechanism.",
-  jqL:"Or type the city to follow", jqPh:"Sherbrooke, Nairobi, Lima…", jViewL:"View", jViewEcl:"Axis tilted by 23.4°", jViewNorth:"Axis upright",
+  j5p:"Earth's axis is tilted by 23.4°. On June 21 the North Pole leans toward the Sun: in the north, every city spends more time in the light than in shadow, and beyond the Arctic Circle the Sun no longer sets. On December 21 it is the reverse. At the equinoxes, day and night last about 12 hours everywhere. Change the tilt of the axis to see its effect: with the axis upright, day and night last 12 hours everywhere, all year round; with the axis lying flat, almost the whole Earth gets, depending on the season, 24-hour days or 24-hour nights. The <a class=\"inline\" href=\"#saisons\" data-view=\"saisons\">Seasons</a> view explains this mechanism.",
+  jqL:"Or type the city to follow", jqPh:"Sherbrooke, Nairobi, Lima…", jTiltL:"Tilt", jTiltG:"Axial tilt", jT0:"Straighten the axis (0°)", jT23:"Real Earth (23.4°)", jT90:"Lay the axis flat (90°)",
   jToday:"Today", jSpeedL:"Speed", gLAxis:"Rotation axis",
   jD1:"June 21", jD2:"December 21", jD3:"March 20", jGo:"Show on the globe",
   jMh:"What day and night are not",
@@ -137,6 +137,9 @@ var D={
   jTw:["<b>{0}</b> : le Soleil vient de passer sous l'horizon ({1}°). C'est le crépuscule ou l'aube.","<b>{0}</b>: the Sun is just below the horizon ({1}°). It is dusk or dawn."],
   jDown:["<b>{0}</b> : le Soleil est à {1}° sous l'horizon. Il fait nuit.","<b>{0}</b>: the Sun is {1}° below the horizon. It is night."],
   jNoon:["Il est midi solaire sur le méridien {0}, et minuit sur le méridien {1}.","It is solar noon on the {0} meridian and midnight on the {1} meridian."],
+  jDayLen:["<b>{0}</b>, ce jour-là : le jour dure {1} et la nuit {2}.","<b>{0}</b>, that day: the day lasts {1} and the night {2}."],
+  jDayAll:["<b>{0}</b>, ce jour-là : le Soleil ne se couche pas, 24 h de jour.","<b>{0}</b>, that day: the Sun does not set, 24 hours of daylight."],
+  jDayNone:["<b>{0}</b>, ce jour-là : le Soleil ne se lève pas, 24 h de nuit.","<b>{0}</b>, that day: the Sun does not rise, 24 hours of night."],
   spin:["▶ 24 h","▶ 24 h"], spinStop:["❚❚ Pause","❚❚ Pause"],
   pLoading:["Chargement des données…","Loading data…"], pNoData:["Les données de population n'ont pas pu être chargées.","The population data could not be loaded."],
   pPlay:["▶ Lancer","▶ Play"], pPause:["❚❚ Pause","❚❚ Pause"],
@@ -269,7 +272,7 @@ function savePrefs(){
 }
 
 /* ---------- état ---------- */
-var lesson={on:false,step:0,follow:null,elev:0.14,ecl:true,city:0,place:null,day:null,today:true,saved:null,auto:{}};
+var lesson={on:false,step:0,follow:null,elev:0.14,ecl:true,city:0,place:null,day:null,today:true,saved:null,auto:{},tilt:23.44};
 var cam={lat:22,lon:8,range:3.4,heading:0,tilt:0};
 var opt={borders:true,names:true,grid:false,equator:false,circles:false,axis:false,tz:false,ex:10,sun:false};
 var SPEEDS=[0.1,0.25,0.5,1,2,4,8], speed=1;      /* heures simulées par seconde */
@@ -503,15 +506,29 @@ function lineSet(name,polys,color,deg){    /* polys : listes [lon,lat,lon,lat…
   gl.bindVertexArray(null);
   lineSets[name]={vao:vao,vbo:vbo,count:n*2,color:color,polys:polys,deg:deg};
 }
-var CIRCLES=[[0,'eq'],[23.44,'tc'],[-23.44,'tp'],[66.56,'ac'],[-66.56,'aa']];
+var EPS0=23.44;          /* inclinaison réelle de l'axe, en degrés */
+function axTilt(){ return lesson.on?lesson.tilt:EPS0; }        /* la leçon « Jour et nuit » peut redresser ou coucher l'axe */
+/* Tropiques à ±ε, cercles polaires à ±(90° − ε) : ils suivent l'inclinaison. Axe droit ou couché, ils se confondent avec l'équateur ou les pôles et ne sont pas tracés. */
+function circleList(){
+  var e=axTilt(), L=[[0,'eq']];
+  if(e>0.5&&e<89.5) L.push([e,'tc'],[-e,'tp'],[90-e,'ac'],[e-90,'aa']);
+  return L;
+}
+var circTilt=null;
+function buildCircles(){
+  var circ=[]; circTilt=axTilt();
+  circleList().forEach(function(c){ if(!c[0]) return; var p=[]; for(var i=-180;i<=180;i+=1) p.push(i,c[0]); circ.push(p); });
+  lineSet('circles',circ,[1,0.80,0.30,0.85],true);
+}
+function syncCircles(){ if(axTilt()!==circTilt){ buildCircles(); dirty=true; } }
 function buildGraticule(){
   var grid=[], circ=[], eq=[], i, j, p;
   for(i=-180;i<180;i+=10){p=[]; for(j=-85;j<=85;j+=1) p.push(i,j); grid.push(p);}
   for(j=-80;j<=80;j+=10){ if(!j) continue; p=[]; for(i=-180;i<=180;i+=1) p.push(i,j); grid.push(p);}
-  CIRCLES.forEach(function(c){p=[]; for(i=-180;i<=180;i+=1) p.push(i,c[0]); (c[0]?circ:eq).push(p);});
+  p=[]; for(i=-180;i<=180;i+=1) p.push(i,0); eq.push(p);
   lineSet('equator',eq,[1,0.80,0.30,0.9],true);
   lineSet('grid',grid,[0.72,0.80,1,0.26],true);
-  lineSet('circles',circ,[1,0.80,0.30,0.85],true);
+  buildCircles();
 }
 function rebuildLines(){ if(soft) return; for(var k in lineSets){var s=lineSets[k]; lineSet(k,s.polys,s.color,s.deg);} }
 
@@ -766,11 +783,16 @@ function palette(zs){         /* remplit pal ; renvoie une clé qui change quand
 function offStr(off){ var a=Math.abs(off), h=Math.floor(a+1e-9), m=Math.round((a-h)*60); return off===0?'UTC':'UTC'+(off<0?'−':'+')+h+(m?':'+pad(m):''); }
 function clockStr(h){ h=((h%24)+24)%24; var hh=Math.floor(h+1e-9), mm=Math.floor((h-hh)*60+1e-6); return li?pad(hh)+':'+pad(mm):hh+' h '+pad(mm); }
 function localAt(off){ var t0=sunSt.hour+off, sh=Math.floor(t0/24); return {h:t0-24*sh,shift:sh}; }
+function dayHours(lat,dec){    /* durée du jour en heures, centre du Soleil sur l'horizon, sans réfraction */
+  if(Math.cos(lat*DEG)<1e-9) return Math.abs(dec)<1e-9?12:(lat*dec>0?24:0);
+  var x=-Math.tan(lat*DEG)*Math.tan(dec*DEG);
+  return x<=-1?24:x>=1?0:Math.acos(x)/Math.PI*24;
+}
 function durStr(x){ var h=Math.floor(x+1e-9), m=Math.round((x-h)*60); return li?(h?h+' h':'')+(m?(h?' ':'')+m+' min':''):(h?h+' h':'')+(m?(h?' '+pad(m):m+' min'):''); }
 
 /* ---------- Soleil ---------- */
 function eclBasis(){    /* dans le repère de la Terre : direction du Soleil S, nord de l'écliptique Ne, sens de l'orbite P */
-  var sp=sunPos(), S=ll2v(sp.lat,sp.lon), e=23.44*DEG, sd=clamp(S[1]/Math.sin(e),-1,1);
+  var sp=sunPos(), S=ll2v(sp.lat,sp.lon), e=axTilt()*DEG, se0=Math.sin(e), sd=se0>1e-6?clamp(S[1]/se0,-1,1):0;
   var cl=Math.sqrt(1-sd*sd)*((sunSt.day<172||sunSt.day>=355)?1:-1);          /* cosinus de la longitude écliptique du Soleil */
   var X=cross(S,[0,1,0]), ce=Math.cos(e), se=Math.sin(e);
   var Ne=norm([ce*(0-S[1]*S[0])+cl*se*X[0], ce*(1-S[1]*S[1])+cl*se*X[1], ce*(0-S[1]*S[2])+cl*se*X[2]]);
@@ -780,6 +802,8 @@ function sunPos(){   /* point où le Soleil est au zénith (formules de la NOAA,
   var g=TAU/365*(sunSt.day+(sunSt.hour-12)/24);
   var eq=229.18*(0.000075+0.001868*Math.cos(g)-0.032077*Math.sin(g)-0.014615*Math.cos(2*g)-0.040849*Math.sin(2*g));
   var de=0.006918-0.399912*Math.cos(g)+0.070257*Math.sin(g)-0.006758*Math.cos(2*g)+0.000907*Math.sin(2*g)-0.002697*Math.cos(3*g)+0.00148*Math.sin(3*g);
+  /* Leçon « Jour et nuit », axe redressé ou couché : même date, mais le Soleil monte de ±ε au lieu de ±23,44° (sin δ = sin ε · sin λ). */
+  if(lesson.on&&lesson.tilt!==EPS0) de=Math.asin(clamp(Math.sin(lesson.tilt*DEG)*Math.sin(de)/Math.sin(EPS0*DEG),-0.99999,0.99999));
   return {lat:de/DEG, lon:wrap180(-15*(sunSt.hour-12+eq/60))};
 }
 function syncSun(){
@@ -792,6 +816,7 @@ function syncSun(){
   $('jPlay').textContent=t(sunSt.playing?'jPause':'jPlay'); $('jTime').textContent=ds+', '+hs;
   $('fPlay').textContent=t(sunSt.playing?'jPause':'jPlay'); $('fTime').textContent=hs+' · '+ds; $('fHour').value=sunSt.hour; $('fHour').setAttribute('aria-valuetext',hs);
   $('jDay').value=sunSt.day; $('jDay').setAttribute('aria-valuetext',ds);
+  var to=tiltStr(lesson.tilt); $('jTiltOut').textContent=to; $('jTilt').setAttribute('aria-valuetext',to);
   var sec=24/speed, so=tf('turn',sec>=60?tf('mins',nf(sec/60,0)):tf('secs',nf(sec,0)));
   $('jSpeedOut').textContent=so; $('jSpeed').setAttribute('aria-valuetext',so);
   document.querySelectorAll('#jDates button').forEach(function(b){b.setAttribute('aria-pressed',String(+b.getAttribute('data-jday')===sunSt.day));});
@@ -1122,7 +1147,7 @@ function drawOverlay(){
     }
   }
   if(opt.circles||opt.equator){
-    CIRCLES.forEach(function(c){
+    circleList().forEach(function(c){
       if(c[0]?!opt.circles:!opt.equator) return;
       var v=ll2v(c[0],cam.lon+(rng>1.2?-28:-rng*14)); if(limb(v)<edge) return;
       p=project(v,0); if(p) label(p,t(c[1]),'500 11px '+FONT,'rgba(255,214,110,0.95)','center',0,-10);
@@ -1197,6 +1222,17 @@ function updateHud(){
       html=tf(al>=0?'jUp':al>-6?'jTw':'jDown','\u0001',nf(Math.abs(al),0)).replace('\u0001',esc(pin.n));
     } else html=tf('jNoon',lonStr(sp.lon),lonStr(wrap180(sp.lon+180)));
     if(hud.jLive!==html){hud.jLive=html; $('jLive').innerHTML=html;}
+    var jdBox=$('jDayBox');
+    if(pin){
+      var dm=Math.round(dayHours(pin.lat,sp.lat)*60);
+      var dt2=dm>=1440?tf('jDayAll','\u0001'):dm<=0?tf('jDayNone','\u0001'):tf('jDayLen','\u0001',durStr(dm/60),durStr((1440-dm)/60));
+      dt2=dt2.replace('\u0001',esc(pin.n));
+      if(hud.jDay!==dt2){
+        hud.jDay=dt2; $('jDayTxt').innerHTML=dt2; jdBox.hidden=false;
+        var jdA=(720-dm/2)/14.4, jdB=(720+dm/2)/14.4;     /* jour centré sur midi, en % des 24 heures */
+        $('jDayBar').style.background='linear-gradient(to right,var(--night-fill) 0 '+jdA+'%,var(--sun-fill) '+jdA+'% '+jdB+'%,var(--night-fill) '+jdB+'% 100%)';
+      }
+    } else if(!jdBox.hidden){ jdBox.hidden=true; hud.jDay=null; }
   }
   $('gNeedle').setAttribute('transform','rotate('+(-cam.heading/DEG).toFixed(1)+' 12 12)');
   var tb=$('gTilt'), tp=String(cam.tilt>0.05); if(tb.getAttribute('aria-pressed')!==tp) tb.setAttribute('aria-pressed',tp);
@@ -1927,7 +1963,7 @@ function applyStep(i){
     else if(!need[k]&&lesson.auto[k]){ setOpt(k,false); lesson.auto[k]=false; }
   }
   if(i===4&&lesson.day!==null) sunSt.day=lesson.day;        /* les autres étapes gardent la date choisie */
-  pin=i===2?jCity():(i===4?pin:null);
+  pin=i===2?jCity():(i===4?(pin||jCity()):null);      /* l'étape 5 compare la durée du jour : elle suit une ville, la première par défaut */
   var sl=sunPos().lon;
   resize(); cam.heading=0; cam.tilt=0;
   cam.range=Math.max(1.6/Math.sin(FOV/2*0.97),1.1/Math.sin(Math.atan(TANV*aspect)))-1;     /* la Terre et son axe tiennent dans le cadre */
@@ -1955,7 +1991,6 @@ $('jSteps').addEventListener('click',function(ev){
 $('jPlay').addEventListener('click',function(){sunSt.playing=!sunSt.playing; syncSun(); dirty=true;});
 function setEcl(on){
   lesson.ecl=on;
-  $('jViewEcl').setAttribute('aria-pressed',String(on)); $('jViewNorth').setAttribute('aria-pressed',String(!on));
   if(lesson.follow!==null){
     if(on){ var B=eclBasis(), U=ll2v(cam.lat,cam.lon); lesson.follow=Math.atan2(dot(U,B.P),dot(U,B.S))/DEG; lesson.elev=clamp(Math.asin(clamp(dot(U,B.Ne),-1,1)),-1.3,1.3); }
     else lesson.follow=wrap180(cam.lon-sunPos().lon);
@@ -1963,8 +1998,22 @@ function setEcl(on){
   if(!on) cam.heading=0;
   dirty=true;
 }
-$('jViewEcl').addEventListener('click',function(){setEcl(true); savePrefs();});
-$('jViewNorth').addEventListener('click',function(){setEcl(false); savePrefs();});
+/* Inclinaison de l'axe : elle change la course du Soleil, donc la limite du jour et la durée du jour, et la vue suit le plan de l'orbite pour la montrer. */
+function tiltStr(v){ return nf(v,v%1?1:0)+'°'; }      /* 0°, 23,4°, 90° */
+function setTilt(v,user){
+  v=clamp(Math.round(v*10)/10,0,90); if(Math.abs(v-EPS0)<0.06) v=EPS0;
+  lesson.tilt=v;
+  var s=$('jTilt'), o=tiltStr(v);
+  if(Math.abs(+s.value-v)>0.05) s.value=v;
+  s.setAttribute('aria-valuetext',o); $('jTiltOut').textContent=o;
+  document.querySelectorAll('[data-jtilt]').forEach(function(b){ b.setAttribute('aria-pressed',String(Math.abs(+b.getAttribute('data-jtilt')-v)<0.06)); });
+  if(!lesson.on) return;
+  syncCircles();
+  if(user&&!lesson.ecl){ setEcl(true); savePrefs(); }
+  hud={}; dirty=true;
+}
+$('jTilt').addEventListener('input',function(){setTilt(+this.value,true);});
+document.querySelectorAll('[data-jtilt]').forEach(function(b){ b.addEventListener('click',function(){setTilt(+b.getAttribute('data-jtilt'),true);}); });
 /* champ « ville à suivre » de l'étape 3 */
 var jq=$('jq'), jqPop=$('jqPop'), jqList=$('jqList'), jqHead=$('jqHead'), jqItems=[], jqAct=-1;
 function jqClose(){jqPop.hidden=true; jq.setAttribute('aria-expanded','false'); jq.removeAttribute('aria-activedescendant');}
@@ -2016,14 +2065,14 @@ function enterLesson(){
   lesson.step=L.step; lesson.city=L.city; lesson.place=L.place; lesson.day=null;
   setNow(); lesson.today=L.day===null; if(!lesson.today) sunSt.day=L.day;
   speed=SPEEDS[L.speed]; $('jSpeed').value=L.speed;
-  lesson.ecl=L.ecl; $('jViewEcl').setAttribute('aria-pressed',String(L.ecl)); $('jViewNorth').setAttribute('aria-pressed',String(!L.ecl));
+  lesson.ecl=L.ecl; setTilt(lesson.tilt);
   $('jq').value=lesson.city<0&&lesson.place?lesson.place.n[li]:'';
   SHOWN.forEach(function(k){setOpt(k,L.show[k]);}); setOpt('tz',false);
   applyStep(lesson.step);
 }
 function leaveLesson(){
   var sv=lesson.saved; savePrefs();
-  lesson.on=false; lesson.follow=null; sunSt.playing=false; speed=1;
+  lesson.on=false; lesson.follow=null; sunSt.playing=false; speed=1; syncCircles();
   $('gSlot').appendChild(stage);
   SHOWN.forEach(function(k){setOpt(k,prefs.globe[k]);}); setOpt('sun',prefs.globe.sun); setOpt('tz',prefs.globe.tz);
   if(sv){ cam.lat=sv.cam.lat; cam.lon=sv.cam.lon; cam.range=sv.cam.range; cam.heading=sv.cam.heading; cam.tilt=sv.cam.tilt; pin=sv.pin; sunSt.day=sv.day; sunSt.hour=sv.hour; }

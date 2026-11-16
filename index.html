@@ -218,8 +218,11 @@ footer{font-size:.8rem;color:var(--ink-2)}
 .jclock output{font-family:var(--display);font-size:1.35rem;font-weight:700;font-variant-numeric:tabular-nums}
 .jclock .row{display:grid;grid-template-columns:5.5em minmax(0,1fr) auto;align-items:center;gap:4px 12px;font-size:.9rem}
 .jclock .row label,.jclock .row .lab{font-weight:600}
-.jclock .jview{grid-template-columns:5.5em minmax(0,1fr)}
-.jclock .jview button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.jclock .jtilt{grid-template-columns:5.5em minmax(0,1fr)}
+.jclock .jtilt button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.jday{display:flex;flex-direction:column;gap:6px}
+.jday .daybar{height:14px;max-width:none}
+.jday p{font-size:.9rem;color:var(--ink-2)}
 .jsteps .place{margin:0}
 .jsteps .combo input{font-size:.95rem}
 .jclock .row .val{color:var(--ink-2);font-variant-numeric:tabular-nums;min-width:8.5em;text-align:right}
@@ -450,14 +453,24 @@ a.inline{color:inherit;text-underline-offset:3px}
             <input type="range" id="jSpeed" min="0" max="6" step="1" value="3">
             <span class="val" id="jSpeedOut"></span>
           </div>
-          <div class="row jview" role="group" aria-label="Vue" data-i18n-attr="aria-label:jViewL">
-            <span class="lab" data-i18n="jViewL">Vue</span>
+          <div class="row">
+            <label for="jTilt" data-i18n="jTiltL">Inclinaison</label>
+            <input type="range" id="jTilt" min="0" max="90" step="0.1" value="23.44">
+            <span class="val" id="jTiltOut">23,4°</span>
+          </div>
+          <div class="row jtilt" role="group" aria-label="Inclinaison de l'axe" data-i18n-attr="aria-label:jTiltG">
+            <span class="lab"></span>
             <div class="chips">
-              <button type="button" id="jViewEcl" aria-pressed="true" data-i18n="jViewEcl">Axe penché de 23,4°</button>
-              <button type="button" id="jViewNorth" aria-pressed="false" data-i18n="jViewNorth">Axe vertical</button>
+              <button type="button" data-jtilt="0" aria-pressed="false" data-i18n="jT0">Redresser l'axe (0°)</button>
+              <button type="button" data-jtilt="23.44" aria-pressed="true" data-i18n="jT23">Terre réelle (23,4°)</button>
+              <button type="button" data-jtilt="90" aria-pressed="false" data-i18n="jT90">Coucher l'axe (90°)</button>
             </div>
           </div>
           <p id="jLive" aria-live="off"></p>
+          <div class="jday" id="jDayBox" hidden>
+            <div class="daybar" id="jDayBar" role="img" aria-label="Part de jour et de nuit sur 24 heures" data-i18n-attr="aria-label:daybarAria"></div>
+            <p id="jDayTxt"></p>
+          </div>
           <fieldset class="jshow">
             <legend data-i18n="jShow">Afficher sur le globe</legend>
             <label class="chk"><input type="checkbox" id="jAxis" data-opt="axis"> <span data-i18n="gLAxis">Axe de rotation</span></label>
@@ -502,7 +515,7 @@ a.inline{color:inherit;text-underline-offset:3px}
           </li>
           <li data-step="4">
             <h3 data-i18n="j5h">Des jours plus longs en été</h3>
-            <p data-i18n="j5p">L'axe de la Terre est penché de 23,4°. Le 21 juin, le pôle Nord penche vers le Soleil&nbsp;: au nord, chaque ville reste plus longtemps dans la lumière que dans l'ombre, et au-delà du cercle arctique le Soleil ne se couche plus. Le 21 décembre, c'est l'inverse. Aux équinoxes, le jour et la nuit durent à peu près 12 heures partout. La vue <a class="inline" href="#saisons" data-view="saisons">Saisons</a> détaille ce mécanisme.</p>
+            <p data-i18n="j5p">L'axe de la Terre est penché de 23,4°. Le 21 juin, le pôle Nord penche vers le Soleil&nbsp;: au nord, chaque ville reste plus longtemps dans la lumière que dans l'ombre, et au-delà du cercle arctique le Soleil ne se couche plus. Le 21 décembre, c'est l'inverse. Aux équinoxes, le jour et la nuit durent à peu près 12 heures partout. Changez l'inclinaison de l'axe pour en voir l'effet&nbsp;: axe redressé, le jour et la nuit durent 12 heures partout, toute l'année&nbsp;; axe couché, presque toute la Terre connaît, selon la saison, des jours ou des nuits de 24 heures. La vue <a class="inline" href="#saisons" data-view="saisons">Saisons</a> détaille ce mécanisme.</p>
             <div class="chips" id="jDates">
               <button type="button" data-jday="171" aria-pressed="true" data-i18n="jD1">21 juin</button>
               <button type="button" data-jday="354" aria-pressed="false" data-i18n="jD2">21 décembre</button>

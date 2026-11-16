@@ -276,6 +276,19 @@ class JourEtNuit(Base):
         p.regler("jDay", 364)
         p.attendre("/31 décembre/.test(jTime.textContent)", delai=5)
 
+    def test_inclinaison_et_duree_du_jour(self):
+        p = self.ouvrir("jour")
+        p.cliquer('#jSteps li[data-step="4"] button[data-jday="171"]')      # étape 5, 21 juin, Montréal suivie
+        p.attendre("!jDayBox.hidden", delai=10, quoi="durée du jour de la ville suivie")
+        p.cliquer('button[data-jtilt="0"]')
+        p.attendre("/le jour dure 12 h et la nuit 12 h/.test(jDayTxt.textContent)", delai=5,
+                   quoi="axe redressé : 12 h de jour")
+        p.cliquer('button[data-jtilt="90"]')
+        p.attendre("/ne se couche pas/.test(jDayTxt.textContent)", delai=5, quoi="axe couché : 24 h de jour le 21 juin")
+        p.regler("jTilt", 23.4)
+        p.attendre("/le jour dure 15 h/.test(jDayTxt.textContent)", delai=5, quoi="Terre réelle : environ 15 h 30 de jour")
+        self.assertEqual(p.js("document.querySelector('[data-jtilt=\"23.44\"]').getAttribute('aria-pressed')"), "true")
+
 
 class Fuseaux(Base):
     def etape(self, p, n):
